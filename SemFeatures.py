@@ -7,14 +7,18 @@ from collections import defaultdict
 
 DEBUG = False
 
+
 class SemFeaturesParserException(Exception):
     def __init__(self, message):
         self.message = message
+
     def __str__(self):
         return repr(self.message)
 
+
 class SemFeaturesParserErrorHandler(xml.sax.ErrorHandler):
-    def warning(self, msg):
+    @staticmethod
+    def warning(msg):
         print("SAX parser warning: {0}".format(msg), file=sys.stderr)
 
     def error(self, msg):
@@ -23,11 +27,15 @@ class SemFeaturesParserErrorHandler(xml.sax.ErrorHandler):
     def fatal(self, msg):
         raise SemFeaturesParserException("SAX parser fatal error: {0}".format(msg))
 
+
 class SemFeaturesParserContentHandler(xml.sax.ContentHandler):
-    # Constructor.
-    # @param wn an existing WNQuery object, that will be used for querying.
-    # @exception SemFeaturesException on file parsing errors
     def __init__(self, wn):
+        """
+        Constructor.
+            :param wn: an existing WNQuery object, that will be used for querying.
+            @exception SemFeaturesException on file parsing errors
+        """
+
         xml.sax.ContentHandler.__init__(self)
         self.m_lcnt = 0                     # input line number
         self.m_ppath = []                   # contains the XML path to the current node (names of the ancestors)
@@ -37,10 +45,8 @@ class SemFeaturesParserContentHandler(xml.sax.ContentHandler):
 
     def startElement(self, name, attrs):
         if DEBUG:
-            print("({0}, {1}): /{2}/START: {3}".format(self._locator.getLineNumber(),
-                                                        self._locator.getColumnNumber(),
-                                                         "/".join(self.m_ppath),
-                                                         name))
+            print("({0}, {1}): /{2}/START: {3}".format(self._locator.getLineNumber(), self._locator.getColumnNumber(),
+                                                       "/".join(self.m_ppath), name))
 
         self.m_ppath.append(name)
 
@@ -55,49 +61,55 @@ class SemFeaturesParserContentHandler(xml.sax.ContentHandler):
 
     def characters(self, chrs):
         if DEBUG:
-            print("({0}, {1}): /{2}/#PCDATA: {3}".format(self._locator.getLineNumber(),
-                                                        self._locator.getColumnNumber(),
-                                                         "/".join(self.m_ppath),
-                                                         chrs))
+            print("({0}, {1}): /{2}/#PCDATA: {3}".format(self._locator.getLineNumber(), self._locator.getColumnNumber(),
+                                                         "/".join(self.m_ppath), chrs))
 
     def endElement(self, name):
         if DEBUG:
-            print("({0}, {1}): /{2}/END: {3}".format(self._locator.getLineNumber(),
-                                                        self._locator.getColumnNumber(),
-                                                         "/".join(self.m_ppath),
-                                                         name))
+            print("({0}, {1}): /{2}/END: {3}".format(self._locator.getLineNumber(), self._locator.getColumnNumber(),
+                                                     "/".join(self.m_ppath), name))
 
         self.m_ppath.pop()
 
-    # Get synset ids mapped to a semantic feature.
-    # @param feature name of semantic feature to look up
-    # @param res result: synset ids pertaining to feature, or empty if feature was not found
-    # @return true if feature was found, false otherwise
     def lookUpFeature(self, feature):
+        """
+        Get synset ids mapped to a semantic feature.
+        :param feature: name of semantic feature to look up
+        :return: res result: synset ids pertaining to feature, or empty if feature was not found
+        """
         res = set()
         if feature in self.m_featmap:
             for wnid in self.m_featmap[feature]:
                 res.add(wnid)
         return res
 
-    # Check whether a literal with given POS is compatible with the given semantic feature.
-    # Check if any sense of literal in WN is a (distant) hyponym of any of the synset ids corresponding to the semantic feature.
-    # @param literal the literal to check
-    # @param pos part-of-speech of literal (allowed values: n, v, a, b)
-    # @param feature semantic feature to check
-    # @param res_sense_ssid if compatibility was found, the id of the synset containing the sense of the literal that was compatible with the feature
-    # @param res_feature_ssid if compatibility was found, the synset id of the interpretation of the feature that was found to be compatible with the literal
-    # @return true if compatibility was found, false otherwise (no sense of literal was compatible with any of ids pertaining to feature, or literal or feature was not found)
     def isLiteralCompatibleWithFeature(self, literal, pos, feature):
+        """
+        Check whether a literal with given POS is compatible with the given semantic feature.
+        Check if any sense of literal in WN is a (distant) hyponym of any of the synset ids corresponding
+         to the semantic feature.
+        :param literal: the literal to check
+    :param pos: part-of-speech of literal (allowed values: n, v, a, b)
+    :param feature: feature semantic feature to check
+    :return: res_sense_ssid if compatibility was found, the id of the synset containing the sense of the literal
+                            that was compatible with the feature
+             res_feature_ssid if compatibility was found, the synset id of the interpretation of the feature
+                            that was found to be compatible with the literal
+             true if compatibility was found, false otherwise (no sense of literal was compatible with any of ids
+                            pertaining to feature, or literal or feature was not found)
+        """
         feat_ids = self.lookUpFeature(feature)
         if feat_ids:
             return self.m_wn.isLiteralConnectedWith(literal, pos, "hypernym", feat_ids)
         return None, None
 
-    # Read mapping (semantic features to synset ids) from XML file.
-    # @param filename name of XML file
-    # @return number of feature name-synset id pairs read successfully
     def readXML(self, semfeaturesfilename):
+        """
+        Read mapping (semantic features to synset ids) from XML file.
+        :param semfeaturesfilename: name of XML file
+        :return:  number of feature name-synset id pairs read successfully
+        """
+
         # open file
         try:
             fh = open(semfeaturesfilename, "r", encoding="UTF-8")

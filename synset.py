@@ -3,19 +3,23 @@
 
 import re
 
+
 class Synonym:
     def __init__(self, l, s, o="", n=""):
         self.literal = l
         self.sense = s
         self.lnote = o
         self.nucleus = n
+
     def __str__(self):
-        return "Synonym(literal: {0}, sense: {1}, lnote: {2}, nucleus: {3})".format(self.literal, self.sense, self.lnote, self.nucleus)
+        return "Synonym(literal: {0}, sense: {1}, lnote: {2}, nucleus: {3})".format(self.literal, self.sense,
+                                                                                    self.lnote, self.nucleus)
+
 
 class Synset:
     def __init__(self):
         self.wnid = ""
-        self.wnid3 = "" # PWN3.0 synset id
+        self.wnid3 = ""  # PWN3.0 synset id
         self.pos = ""
         self.definition = ""
         self.bcs = ""
@@ -27,7 +31,8 @@ class Synset:
         self.usages = []  # List of strings
         self.snotes = [] # List of strings
 
-        # Type for vector of "pointer", which are pairs whose 1st component it the link target (id), 2nd component is the link type
+        # Type for vector of "pointer", which are pairs whose 1st component it the link target (id),
+        # 2nd component is the link type
         # In Python: [ ("", "") ] WARNING: Tuples are inmutable in Python!
         self.ilrs = []         # (target-id, rel-type) relation pointers
         self.sumolinks = []    # (target-term, link-type) SUMO links
@@ -38,11 +43,14 @@ class Synset:
 
         self.synonyms = []  # Vector of Synonym type
 
-    # check if empty
     def empty(self):
+        """
+        check if empty
+        """
         return self.wnid == ""
 
-    def str_list_of_pair(self, name, var):
+    @staticmethod
+    def str_list_of_pair(name, var):
         vect = []
         for key, val in var:
             vect.append("({0}, {1})".format(key, val))
@@ -51,8 +59,8 @@ class Synset:
         return "{0}([{1}])".format(name, buf)
 
     def __str__(self):
-        buf = "Synset(wnid: {0}, pos: {1}, definition: {2}, bcs: {3}, stamp: {4}, domain: {5}, nl: {6}, tnl: {7}, ".format(
-        self.wnid, self.pos, self.definition, self.bcs, self.stamp, self.domain, self.nl, self.tnl)
+        buf = "Synset(wnid: {0}, pos: {1}, definition: {2}, bcs: {3}, stamp: {4}, domain: {5}, nl: {6}, tnl: {7}, ". \
+            format(self.wnid, self.pos, self.definition, self.bcs, self.stamp, self.domain, self.nl, self.tnl)
         buf += "Usages([{0}]), ".format(", ".join(sorted(self.usages)))
         buf += "Snotes([{0}]), ".format(", ".join(sorted(self.snotes)))
         buf += self.str_list_of_pair("Ilrs", self.ilrs) + ", "
@@ -88,21 +96,22 @@ class Synset:
         self.synonyms = []
 
     @staticmethod
-    def writeXMLHeader(self, out):
+    def writeXMLHeader(out):
         """Write XML declaration, DTD reference and root opening tag to out."""
         XMLdecl = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
         XMLdoctypedecl = "<!DOCTYPE WNXML SYSTEM \"wnxml.dtd\">"
         print("{0}\n{1}\n<WNXML>".format(XMLdecl, XMLdoctypedecl), file=out)
 
     @staticmethod
-    def writeXMLFooter(self, out):
+    def writeXMLFooter(out):
         """Write XML root closing tag to out."""
         print("</WNXML>", file=out)      
       
-    # Write VisDic XML representation of synset to stream
     def writeXML(self, out):
+        """Write VisDic XML representation of synset to stream"""
 
-        print("<SYNSET>{0}{1}{2}<SYNONYM>".format(self._tagstr("ID", self.wnid), self._tagstr("ID3", self.wnid3) if self.wnid3 else "",
+        print("<SYNSET>{0}{1}{2}<SYNONYM>".format(self._tagstr("ID", self.wnid),
+                                                  self._tagstr("ID3", self.wnid3) if self.wnid3 else "",
                                                   self._tagstr("POS", self.pos)), end="", file=out)
 
         for i in self.synonyms:
@@ -116,7 +125,8 @@ class Synset:
             else:
                 nucleus_out = ""
 
-            print("<LITERAL>{0}{1}{2}{3}</LITERAL>".format(self._EscPC(i.literal), self._tagstr("SENSE", i.sense), lnote_out, nucleus_out), end="", file=out)
+            print("<LITERAL>{0}{1}{2}{3}</LITERAL>".format(self._EscPC(i.literal), self._tagstr("SENSE", i.sense),
+                                                           lnote_out, nucleus_out), end="", file=out)
 
         print("</SYNONYM>", end="", file=out)
 
@@ -168,12 +178,16 @@ class Synset:
         for i in var:
             print(self._tagstr(TAG, i), end="", file=out)
 
-    # Write string representation (see below) to stream
     def writeStr(self, out):
+        """
+        Write string representation (see below) to stream
+        """
         print(self.toString(), end="", file=out)
 
-    # Return string representation: "<id> {<literal:sid>,...} (<definiton>)"
     def toString(self):
+        """
+        Return string representation: "<id> {<literal:sid>,...} (<definiton>)"
+        """
         buff = []
         for i in self.synonyms:
             buff.append("{0}:{1}".format(i.literal, i.sense))
@@ -183,4 +197,5 @@ class Synset:
         return "<{0}>{1}</{0}>".format(tag, self._EscPC(string))
 
     def _EscPC(self, string):
-        return re.sub("&(?![a-zA-Z0-9_#-]+;)", "&amp;", string).replace("<", "&lt;").replace(">", "&gt;").replace("'", "&apos;").replace("\"", "&quot;")
+        return re.sub("&(?![a-zA-Z0-9_#-]+;)", "&amp;", string).replace("<", "&lt;").replace(">", "&gt;").\
+            replace("'", "&apos;").replace("\"", "&quot;")

@@ -5,35 +5,34 @@ import sys
 import os
 try:
     import readline
-except:
-    pass # Readline module not loaded, seems you're not using Linux. Be sure to fix that.
+except ImportError:
+    pass  # Readline module not loaded, seems you're not using Linux. Be sure to fix that.
 
 import WNQuery
 import SemFeatures
 
+
 def process_query(wn, sf, query, out):
     t = query.split(" ")
     if t[0] == ".h":    # .h
-        buf = []
-        buf.append("Available commands:")
-        buf.append(".h                                                this help")
-        buf.append(".q                                                quit")
-        buf.append(".i   <id> <pos>                                   look up synset id in given POS (n,v,a,b)")
-        buf.append(".l   <literal>                                    look up all synsets containing literal in all POS")
-        buf.append(".l   <literal> <pos>                              look up all synsets containing literal in given POS")
-        buf.append(".l   <literal> <sensenum> <pos>                   look up synset containing literal with given sense number in given POS")
-        buf.append(".rl  <literal> <pos>                              list known relations of all senses of literal in POS")
-        buf.append(".rl  <literal> <pos> <relation>                   look up relation (hypernym, hyponym) of all senses of literal with id and POS, list target ids")
-        buf.append(".ri  <id> <pos> <relation>                        look up relation of synset with id and POS, list target ids")
-        buf.append(".ti  <id> <pos> <relation>                        trace relations of synset with id and POS")
-        buf.append(".tl  <literal> <pos> <relation>                   trace relations of all senses of literal in POS")
-        buf.append(".ci  <id> <pos> <relation> <id1> [<id2>...]       check if any of id1,id2,... is reachable from id by following relation")
-        buf.append(".cl  <literal> <pos> <relation> <id1> [<id2>...]  check if any of id1,id2,... is reachable from any sense of literal by following relation")
-        buf.append(".cli <literal> <pos> <id> [hyponyms]              check if synset contains literal, or if \"hyponyms\" is added, any of its hyponyms")
-        buf.append(".slc <literal1> <literal2> <pos> <relation> [top] calculate Leacock-Chodorow similarity for all senses of literals in pos using relation")
-        buf.append("                                                  if 'top' is added, an artificial root node is added to relation paths, making WN interconnected.")
-        buf.append(".md  <id> <pos> <relation>                        calculate the longest possible path to synset with id and POS from the root level using relation")
-        buf.append(".sg  <id> <pos> <relation>                        calculate the number of nodes in the graph starting from synset id doing a recursive trace using relation")
+        buf = ["Available commands:", ".h                                                this help",
+               ".q                                                quit",
+               ".i   <id> <pos>                                   look up synset id in given POS (n,v,a,b)",
+               ".l   <literal>                                    look up all synsets containing literal in all POS",
+               ".l   <literal> <pos>                              look up all synsets containing literal in given POS",
+               ".l   <literal> <sensenum> <pos>                   look up synset containing literal with given sense number in given POS",
+               ".rl  <literal> <pos>                              list known relations of all senses of literal in POS",
+               ".rl  <literal> <pos> <relation>                   look up relation (hypernym, hyponym) of all senses of literal with id and POS, list target ids",
+               ".ri  <id> <pos> <relation>                        look up relation of synset with id and POS, list target ids",
+               ".ti  <id> <pos> <relation>                        trace relations of synset with id and POS",
+               ".tl  <literal> <pos> <relation>                   trace relations of all senses of literal in POS",
+               ".ci  <id> <pos> <relation> <id1> [<id2>...]       check if any of id1,id2,... is reachable from id by following relation",
+               ".cl  <literal> <pos> <relation> <id1> [<id2>...]  check if any of id1,id2,... is reachable from any sense of literal by following relation",
+               ".cli <literal> <pos> <id> [hyponyms]              check if synset contains literal, or if \"hyponyms\" is added, any of its hyponyms",
+               ".slc <literal1> <literal2> <pos> <relation> [top] calculate Leacock-Chodorow similarity for all senses of literals in pos using relation",
+               "                                                  if 'top' is added, an artificial root node is added to relation paths, making WN interconnected.",
+               ".md  <id> <pos> <relation>                        calculate the longest possible path to synset with id and POS from the root level using relation",
+               ".sg  <id> <pos> <relation>                        calculate the number of nodes in the graph starting from synset id doing a recursive trace using relation"]
         if sf:
             buf.append(".s  <feature>                                     look up semantic feature")
             buf.append(".sc <literal> <pos> <feature>                    check whether any sense of literal is compatible with semantic feature")
@@ -60,8 +59,7 @@ def process_query(wn, sf, query, out):
         if len(t) == 2:  # .l <literal>
             # For n, v, a, b elements we run the lookUpLiteral function,
             # then we flatten the resulting list of returned lists
-            res = [item for i in ["n", "v", "a", "b"]
-                         for item in wn.lookUpLiteral(t[1], i)]
+            res = [item for i in ("n", "v", "a", "b") for item in wn.lookUpLiteral(t[1], i)]
 
             if not res:
                 print("Literal not found\n", file=out)
@@ -244,7 +242,8 @@ def process_query(wn, sf, query, out):
             return
 
         print("Results:", file=out)
-        for key, (wnid1, wnid2) in sorted(wn.similarityLeacockChodorow(t[1], t[2], t[3], t[4], addtop).items(), reverse=True):  # tSims
+        for key, (wnid1, wnid2) in sorted(wn.similarityLeacockChodorow(t[1], t[2], t[3], t[4], addtop).items(),
+                                          reverse=True):  # tSims
             print("  {0}\t{1}  {2}".format(key, wnid1, wnid2), file=out)
         return
 
@@ -266,8 +265,9 @@ def process_query(wn, sf, query, out):
 
     print("Unknown command\n", file=out)
 
-# This is exact same function as Synset.writeStr(out)
+
 def write_synset(syns, out):
+    """This is exact same function as Synset.writeStr(out)"""
     buff = []
     for i in syns.synonyms:
         buff.append("{0}:{1}".format(i.literal, i.sense))
@@ -304,8 +304,8 @@ def main():
     # query loop
     print("Type your query, or .h for help, .q to quit", file=sys.stderr)
     while True:
-        #print(">", end="", file=sys.stderr)
-        #line = sys.stdin.readline().strip()
+        # print(">", end="", file=sys.stderr)
+        # line = sys.stdin.readline().strip()
         sys.stderr.flush()
         line = input('>').strip()
         if line == ".q":
@@ -316,11 +316,14 @@ def main():
             except InvalidPOSException as e:
                 print(e, file=sys.stderr)
 
+
 class InvalidPOSException(Exception):
     def __init__(self, message):
         self.message = message
+
     def __str__(self):
         return repr(self.message)
+
 
 if __name__ == '__main__':
     main()

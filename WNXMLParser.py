@@ -8,14 +8,18 @@ import synset
 
 DEBUG = False
 
+
 class WNXMLParserException(Exception):
     def __init__(self, message):
         self.message = message
+
     def __str__(self):
         return repr(self.message)
 
+
 class WNXMLParserErrorHandler(xml.sax.ErrorHandler):
-    def warning(self, msg):
+    @staticmethod
+    def warning(msg):
         print("SAX parser warning: {0}".format(msg), file=sys.stderr)
 
     def error(self, msg):
@@ -23,6 +27,7 @@ class WNXMLParserErrorHandler(xml.sax.ErrorHandler):
 
     def fatal(self, msg):
         raise WNXMLParserException("SAX parser fatal error: {0}".format(msg))
+
 
 class WNXMLParserContentHandler(xml.sax.ContentHandler):
     def __init__(self):
@@ -54,17 +59,14 @@ class WNXMLParserContentHandler(xml.sax.ContentHandler):
         self.m_startroot = False      # was there a starting root tag?
         self.m_endroot = False        # was there an end root tag?
 
-
     def endDocument(self):
         if self.m_done != 1:  # reached eof before end of segment
             raise WNXMLParserException("Warning: end of file reached before </SYNSET>, possibly corrupt input")
 
     def startElement(self, name, attrs):
         if DEBUG:
-            print("({0}, {1}): /{2}/START: {3}".format(self._locator.getLineNumber(),
-                                                        self._locator.getColumnNumber(),
-                                                         "/".join(self.m_ppath),
-                                                         name))
+            print("({0}, {1}): /{2}/START: {3}".format(self._locator.getLineNumber(), self._locator.getColumnNumber(),
+                                                       "/".join(self.m_ppath), name))
 
         self.m_ppath.append(name)
 
@@ -84,7 +86,8 @@ class WNXMLParserContentHandler(xml.sax.ContentHandler):
 
         elif name == "SYNSET":
             if self.m_done == 0:
-                raise WNXMLParserException("WNXMLParser internal error: SYNSET should start now, but m_done is not 0 ({0})!".format(self.m_done))
+                raise WNXMLParserException("WNXMLParser internal error: SYNSET should start now,"
+                                           " but m_done is not 0 ({0})!".format(self.m_done))
             self.m_done = 0
             self.m_lcnt = self._locator.getLineNumber()
 
@@ -130,8 +133,8 @@ class WNXMLParserContentHandler(xml.sax.ContentHandler):
         elif name == "EQ_HYPONYM" and parent == "SYNSET":
             self.m_syns.elrs.append(["", "eq_has_hyponym"])
 
-        #elif name == "ELR" and parent == "SYNSET":
-        #    self.m_syns.elrs.append(["", ""])
+        # elif name == "ELR" and parent == "SYNSET":
+        #     self.m_syns.elrs.append(["", ""])
 
         elif name == "EKSZ" and parent == "SYNSET":
             self.m_syns.ekszlinks.append(["", ""])
@@ -141,10 +144,8 @@ class WNXMLParserContentHandler(xml.sax.ContentHandler):
 
     def characters(self, chrs):
         if DEBUG:
-            print("({0}, {1}): /{2}/#PCDATA: {3}".format(self._locator.getLineNumber(),
-                                                        self._locator.getColumnNumber(),
-                                                         "/".join(self.m_ppath),
-                                                         chrs))
+            print("({0}, {1}): /{2}/#PCDATA: {3}".format(self._locator.getLineNumber(), self._locator.getColumnNumber(),
+                                                         "/".join(self.m_ppath), chrs))
 
         if self.m_done == 1 or self.m_done == -1:
             return
@@ -187,7 +188,8 @@ class WNXMLParserContentHandler(xml.sax.ContentHandler):
 
         elif parent == "LNOTE" and gparent == "LITERAL" and ggparent == "SYNONYM":  # SYNSET/SYNONYM/LITERAL/LNOTE
             if len(self.m_syns.synonyms) == 0:
-                raise WNXMLParserException("WNXMLParser internal error: synonyms empty({0}) at LNOTE tag".format(len(self.m_syns.synonyms)))
+                raise WNXMLParserException("WNXMLParser internal error: synonyms empty({0}) at LNOTE tag".
+                                           format(len(self.m_syns.synonyms)))
             self.m_syns.synonyms[-1].lnote += chrs
 
         elif parent == "NUCLEUS" and gparent == "LITERAL" and ggparent == "SYNONYM":  # SYNSET/SYNONYM/LITERAL/NUCLEUS
@@ -272,10 +274,8 @@ class WNXMLParserContentHandler(xml.sax.ContentHandler):
 
     def endElement(self, name):
         if DEBUG:
-            print("({0}, {1}): /{2}/END: {3}".format(self._locator.getLineNumber(),
-                                                        self._locator.getColumnNumber(),
-                                                         "/".join(self.m_ppath),
-                                                         name))
+            print("({0}, {1}): /{2}/END: {3}".format(self._locator.getLineNumber(), self._locator.getColumnNumber(),
+                                                     "/".join(self.m_ppath), name))
 
         if len(self.m_ppath) >= 2:
             parent = self.m_ppath[-2]
@@ -287,7 +287,8 @@ class WNXMLParserContentHandler(xml.sax.ContentHandler):
 
         elif name == "SYNSET":  # SYNSET
             if self.m_done != 0:
-                raise WNXMLParserException("This is impossible!\nThe parser should've caught this error: 'SYNSET' end tag without previous begin tag")
+                raise WNXMLParserException("This is impossible!\nThe parser should've caught this error:"
+                                           " 'SYNSET' end tag without previous begin tag")
             self.m_done = 1
             self.m_syns_list.append((self.m_syns, self.m_lcnt))
             self.m_syns = synset.Synset()
@@ -324,9 +325,11 @@ class WNXMLParserContentHandler(xml.sax.ContentHandler):
 
         self.m_ppath.pop()
 
-    # Magic lies here
-    # Source: http://stackoverflow.com/a/12263340
     def parse(self, input_file):
+        """
+        # Magic lies here
+        # Source: http://stackoverflow.com/a/12263340
+        """
         # Make parser
         xmlReader = xml.sax.make_parser()
         # set self as ContentHandler
@@ -337,4 +340,3 @@ class WNXMLParserContentHandler(xml.sax.ContentHandler):
         xmlReader.parse(input_file)
         # Return the gathered result
         return self.m_syns_list
-
