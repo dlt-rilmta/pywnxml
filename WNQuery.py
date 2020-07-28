@@ -57,20 +57,20 @@ class WNQuery:
         self.m_vidx = defaultdict(list)
         self.m_aidx = defaultdict(list)
         self.m_bidx = defaultdict(list)
-        self._invRelTable = {"hypernym": "hyponym", "holo_member": "mero_member", "holo_part": "mero_part",
-                             "holo_portion": "mero_portion", "region_domain": "region_member",
-                             "usage_domain": "usage_member", "category_domain": "category_member",
-                             "near_antonym": "near_antonym", "middle": "middle", "verb_group": "verb_group",
-                             "similar_to": "similar_to", "also_see": "also_see", "be_in_state": "be_in_state",
-                             "eng_derivative": "eng_derivative", "is_consequent_state_of": "has_consequent_state",
-                             "is_preparatory_phase_of": "has_preparatory_phase", "is_telos_of": "has_telos",
-                             "subevent": "has_subevent", "causes": "caused_by"}
+        self._invRelTable = {'hypernym': 'hyponym', 'holo_member': 'mero_member', 'holo_part': 'mero_part',
+                             'holo_portion': 'mero_portion', 'region_domain': 'region_member',
+                             'usage_domain': 'usage_member', 'category_domain': 'category_member',
+                             'near_antonym': 'near_antonym', 'middle': 'middle', 'verb_group': 'verb_group',
+                             'similar_to': 'similar_to', 'also_see': 'also_see', 'be_in_state': 'be_in_state',
+                             'eng_derivative': 'eng_derivative', 'is_consequent_state_of': 'has_consequent_state',
+                             'is_preparatory_phase_of': 'has_preparatory_phase', 'is_telos_of': 'has_telos',
+                             'subevent': 'has_subevent', 'causes': 'caused_by'}
 
         # open file
         try:
-            fh = open(wnxmlfilename, encoding="UTF-8")
+            fh = open(wnxmlfilename, encoding='UTF-8')
         except (OSError, IOError) as e:
-            raise WNQueryException("Could not open file: {0} because: {1}".format(wnxmlfilename, e))
+            raise WNQueryException('Could not open file: {0} because: {1}'.format(wnxmlfilename, e))
 
         # parse input file
         for syns, lcnt in WNXMLParser.WNXMLParserContentHandler().parse(fh):
@@ -87,27 +87,27 @@ class WNQuery:
 
         if DEBUG:
             for key, val in self.m_ndat.items():
-                print("{0}: {1}".format(key, str(val)), file=sys.stdout)
+                print('{0}: {1}'.format(key, str(val)), file=sys.stdout)
             for key, val in self.m_vdat.items():
-                print("{0}: {1}".format(key, str(val)), file=sys.stdout)
+                print('{0}: {1}'.format(key, str(val)), file=sys.stdout)
             for key, val in self.m_adat.items():
-                print("{0}: {1}".format(key, str(val)), file=sys.stdout)
+                print('{0}: {1}'.format(key, str(val)), file=sys.stdout)
             for key, val in self.m_bdat.items():
-                print("{0}: {1}".format(key, str(val)), file=sys.stdout)
+                print('{0}: {1}'.format(key, str(val)), file=sys.stdout)
 
         if DEBUG2:
             for key, val in self.m_nidx.items():
                 for vi in val:
-                    print("{0}: {1}".format(key, vi), file=sys.stdout)
+                    print('{0}: {1}'.format(key, vi), file=sys.stdout)
             for key, val in self.m_vidx.items():
                 for vi in val:
-                    print("{0}: {1}".format(key, vi), file=sys.stdout)
+                    print('{0}: {1}'.format(key, vi), file=sys.stdout)
             for key, val in self.m_aidx.items():
                 for vi in val:
-                    print("{0}: {1}".format(key, vi), file=sys.stdout)
+                    print('{0}: {1}'.format(key, vi), file=sys.stdout)
             for key, val in self.m_bidx.items():
                 for vi in val:
-                    print("{0}: {1}".format(key, vi), file=sys.stdout)
+                    print('{0}: {1}'.format(key, vi), file=sys.stdout)
 
         self.LeaCho_D = {}
         self.LeaCho_noconnect = - 1.0
@@ -119,22 +119,22 @@ class WNQuery:
         :return:
         """
         nidx_len = 0
-        for it in self.idx("n").values():
+        for it in self.idx('n').values():
             nidx_len += len(it)
         vidx_len = 0
-        for it in self.idx("v").values():
+        for it in self.idx('v').values():
             vidx_len += len(it)
         aidx_len = 0
-        for it in self.idx("a").values():
+        for it in self.idx('a').values():
             aidx_len += len(it)
         bidx_len = 0
-        for it in self.idx("b").values():
+        for it in self.idx('b').values():
             bidx_len += len(it)
-        print("PoS\t\t#synsets\t#word senses\t#words", file=os)
-        print("Nouns\t\t{0}\t\t{1}\t\t{2}".format(len(self.dat("n")), nidx_len, len(self.idx("n"))), file=os)
-        print("Verbs\t\t{0}\t\t{1}\t\t{2}".format(len(self.dat("v")), vidx_len, len(self.idx("v"))), file=os)
-        print("Adjectives\t{0}\t\t{1}\t\t{2}".format(len(self.dat("a")), aidx_len, len(self.idx("a"))), file=os)
-        print("Adverbs\t\t{0}\t\t{1}\t\t{2}".format(len(self.dat("b")), bidx_len, len(self.idx("b"))), file=os)
+        print('PoS\t\t#synsets\t#word senses\t#words', file=os)
+        print('Nouns\t\t{0}\t\t{1}\t\t{2}'.format(len(self.dat('n')), nidx_len, len(self.idx('n'))), file=os)
+        print('Verbs\t\t{0}\t\t{1}\t\t{2}'.format(len(self.dat('v')), vidx_len, len(self.idx('v'))), file=os)
+        print('Adjectives\t{0}\t\t{1}\t\t{2}'.format(len(self.dat('a')), aidx_len, len(self.idx('a'))), file=os)
+        print('Adverbs\t\t{0}\t\t{1}\t\t{2}'.format(len(self.dat('b')), bidx_len, len(self.idx('b'))), file=os)
 
     def _save_synset(self, syns, lcnt):
         if syns.empty():
@@ -142,7 +142,7 @@ class WNQuery:
         try:
             # check if id already exists, print warning if yes
             if syns.wnid in self.dat(syns.pos):
-                print("Warning W01: synset with this id ({0}) already exists (input line {1})".format(syns.wnid, lcnt),
+                print('Warning W01: synset with this id ({0}) already exists (input line {1})'.format(syns.wnid, lcnt),
                       file=self.log)
                 return
 
@@ -153,7 +153,7 @@ class WNQuery:
                 self.idx(syns.pos)[i.literal].append(syns.wnid)
 
         except InvalidPOSException as e:
-            print("Warning W02: {0} for synset in input line {1}".format(e, lcnt), file=self.log)
+            print('Warning W02: {0} for synset in input line {1}'.format(e, lcnt), file=self.log)
 
     def invert_relations(self):
         """
@@ -164,16 +164,16 @@ class WNQuery:
         :return:
         """
         # nouns
-        print("Inverting relations for nouns...", file=self.log)
+        print('Inverting relations for nouns...', file=self.log)
         self._inv_rel_pos(self.m_ndat)
         # verbs
-        print("Inverting relations for verbs...", file=self.log)
+        print('Inverting relations for verbs...', file=self.log)
         self._inv_rel_pos(self.m_vdat)
         # adjectives
-        print("Inverting relations for adjectives...", file=self.log)
+        print('Inverting relations for adjectives...', file=self.log)
         self._inv_rel_pos(self.m_adat)
         # adverbs
-        print("Inverting relations for adverbs...", file=self.log)
+        print('Inverting relations for adverbs...', file=self.log)
         self._inv_rel_pos(self.m_bdat)
 
     def _inv_rel_pos(self, dat):
@@ -186,18 +186,18 @@ class WNQuery:
                     invr = self._invRelTable[rel]
                     # check if target exists
                     if synset_id not in dat:
-                        print("Warning W03: synset {0} is missing ('{1}' target from synset {2})".
+                        print('Warning W03: synset {0} is missing (\'{1}\' target from synset {2})'.
                               format(synset_id, rel, key), file=self.log)
                     else:
                         tt = dat[synset_id]
                         # check wether target is not the same as source
                         if tt.wnid == val.wnid:
-                            print("Warning W04: self-referencing relation '{0}' for synset {1}".
+                            print('Warning W04: self-referencing relation \'{0}\' for synset {1}'.
                                   format(invr, val.wnid), file=self.log)
                         else:
                             # add inverse to target synset
                             tt.ilrs.append((key, invr))
-                            print("Added inverted relation (target={0},type={1}) to synset {2}".
+                            print('Added inverted relation (target={0},type={1}) to synset {2}'.
                                   format(key, invr, tt.wnid), file=self.log)
 
     # The following functions give access to the internal representation of
@@ -210,16 +210,16 @@ class WNQuery:
         :param pos: part-of-speech: n|v|a|b
         # @exception WNQueryException if invalid POS
         """
-        if pos == "n":
+        if pos == 'n':
             return self.m_ndat
-        elif pos == "v":
+        elif pos == 'v':
             return self.m_vdat
-        elif pos == "a":
+        elif pos == 'a':
             return self.m_adat
-        elif pos == "b":
+        elif pos == 'b':
             return self.m_bdat
         else:
-            raise InvalidPOSException("Invalid POS '{0}'".format(pos))
+            raise InvalidPOSException('Invalid POS \'{0}\''.format(pos))
 
     def idx(self, pos):
         """
@@ -227,16 +227,16 @@ class WNQuery:
         :param pos: part-of-speech: n|v|a|b
         # @exception WNQueryException if invalid POS
         """
-        if pos == "n":
+        if pos == 'n':
             return self.m_nidx
-        elif pos == "v":
+        elif pos == 'v':
             return self.m_vidx
-        elif pos == "a":
+        elif pos == 'a':
             return self.m_aidx
-        elif pos == "b":
+        elif pos == 'b':
             return self.m_bidx
         else:
-            raise InvalidPOSException("Invalid POS '{0}'".format(pos))
+            raise InvalidPOSException('Invalid POS \'{0}\''.format(pos))
 
     def look_up_id(self, wnid, pos):
         """
@@ -278,7 +278,7 @@ class WNQuery:
         """
 
         if wnid not in self.dat(pos):
-            raise WNQueryException("Synset id not found")
+            raise WNQueryException('Synset id not found')
         return self.dat(pos)[wnid]
 
     def look_up_literal(self, literal, pos):
@@ -389,8 +389,8 @@ class WNQuery:
         # look up current synset
         if wnid in self.dat(pos):  # found
             # print current synset
-            current = ["{0}:{1}".format(i.literal, i.sense) for i in self.dat(pos)[wnid].synonyms]
-            buf.append("{0}{1}  {{{2}}}  ({3})".format("  "*lev, self.dat(pos)[wnid].wnid, ", ".join(current),
+            current = ['{0}:{1}'.format(i.literal, i.sense) for i in self.dat(pos)[wnid].synonyms]
+            buf.append('{0}{1}  {{{2}}}  ({3})'.format('  '*lev, self.dat(pos)[wnid].wnid, ', '.join(current),
                                                        self.dat(pos)[wnid].definition))
             # recurse on children
             for synset_id, relation in self.dat(pos)[wnid].ilrs:  # for all relations of synset
@@ -479,7 +479,7 @@ class WNQuery:
             # if allowed, recurse on hyponyms
             if hyponyms:
                 for synset_id, rel in syns.ilrs:
-                    if rel == "hyponym" and self.is_literal_compatible_with_synset(literal, pos, synset_id, True):
+                    if rel == 'hyponym' and self.is_literal_compatible_with_synset(literal, pos, synset_id, True):
                         return True
         return False
 
@@ -581,7 +581,7 @@ class WNQuery:
                 if relation == rel:  # if it is the right type
                     haschildren = True
                     res.extend(self.get_reach(synset_id, pos, rel, add_top, dist))  # recurse on child
-            # if it has no "children" of this type (is terminal leaf or root level), add artificial "root" if requested
+            # if it has no 'children' of this type (is terminal leaf or root level), add artificial 'root' if requested
             if not haschildren and add_top:
-                res.append(("#TOP#", dist))
+                res.append(('#TOP#', dist))
         return res
