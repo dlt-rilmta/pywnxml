@@ -50,17 +50,14 @@ class SemFeaturesParserContentHandler(ContentHandler):
         if DEBUG:
             print('(', self._locator.getLineNumber(), ', ', self._locator.getColumnNumber(), '): /',
                   '/'.join(self.m_ppath), '/START: ', name, sep='')
+            self.m_ppath.append(name)
 
-        self.m_ppath.append(name)
-
-        if name == 'semfeature':
-            if 'name' in attrs:
-                # save current attribute
-                self.m_currfeat = attrs['name']
-        elif name == 'synset':
-            if 'id' in attrs:
-                # save current attribute + synset pair
-                self.m_featmap[self.m_currfeat].append(attrs['id'])
+        if name == 'semfeature' and 'name' in attrs:
+            # save current attribute
+            self.m_currfeat = attrs['name']
+        elif name == 'synset' and 'id' in attrs:
+            # save current attribute + synset pair
+            self.m_featmap[self.m_currfeat].append(attrs['id'])
 
     def characters(self, chrs):
         if DEBUG:
@@ -80,11 +77,7 @@ class SemFeaturesParserContentHandler(ContentHandler):
         :param feature: name of semantic feature to look up
         :return: res result: synset ids pertaining to feature, or empty if feature was not found
         """
-        res = set()
-        if feature in self.m_featmap:
-            for wnid in self.m_featmap[feature]:
-                res.add(wnid)
-        return res
+        return {wnid for wnid in self.m_featmap[feature] if feature in self.m_featmap}
 
     def is_literal_compatible_with_feature(self, literal, pos, feature):
         """
@@ -102,37 +95,41 @@ class SemFeaturesParserContentHandler(ContentHandler):
                             pertaining to feature, or literal or feature was not found)
         """
         feat_ids = self.look_up_feature(feature)
-        if feat_ids:
-            return self.m_wn.is_literal_connected_with(literal, pos, "hypernym", feat_ids)
+        if len(feat_ids) > 0:
+            return self.m_wn.is_literal_connected_with(literal, pos, 'hypernym', feat_ids)
         return None, None
 
-    def read_xml(self, semfeaturesfilename):
+    @classmethod
+    def read_xml(cls, wn, semfeaturesfilename, os):
         """
         Read mapping (semantic features to synset ids) from XML file.
+        :param wn: An Initialised WNQuery instance
         :param semfeaturesfilename: name of XML file
-        :return:  number of feature name-synset id pairs read successfully
+        :param os: output stream number of feature name-synset id pairs read successfully
+        :return: Initialised instance
         """
-
+        content_handler = cls(wn)
         # open file
         try:
-            fh = open(semfeaturesfilename, encoding='UTF-8')
+            with open(semfeaturesfilename, encoding='UTF-8') as fh:
+                # Magic lies here
+                # Source: http://stackoverflow.com/a/12263340
+                # Make parser
+                xml_reader = make_parser()
+                # set self as ContentHandler
+                xml_reader.setContentHandler(content_handler)
+                # Set ErrorHandler
+                xml_reader.setErrorHandler(SemFeaturesParserErrorHandler())
+                # Do the actual parsing
+                xml_reader.parse(fh)
         except (OSError, IOError) as e:
             raise SemFeaturesParserException(f'Could not open file: {semfeaturesfilename} because: {e}')
-        # Magic lies here
-        # Source: http://stackoverflow.com/a/12263340
-        # Make parser
-        xml_reader = make_parser()
-        # set self as ContentHandler
-        xml_reader.setContentHandler(self)
-        # Set ErrorHandler
-        xml_reader.setErrorHandler(SemFeaturesParserErrorHandler())
-        # Do the actual parsing
-        xml_reader.parse(fh)
-        fh.close()
+
         # Close defaultdict for safety
-        self.m_featmap.default_factory = None
+        content_handler.m_featmap.default_factory = None
         # Return the gathered result
         m_featmap_len = 0
-        for it in self.m_featmap.values():
+        for it in content_handler.m_featmap.values():
             m_featmap_len += len(it)
-        return m_featmap_len
+        print(m_featmap_len, 'pairs read', file=os)
+        return cls

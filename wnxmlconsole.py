@@ -8,12 +8,39 @@ try:
 except ImportError:
     pass  # Readline module not loaded, seems you're not using Linux. Be sure to fix that.
 
-import WNQuery
-import SemFeatures
+from WNQuery import WNQuery, InvalidPOSException
+from SemFeatures import SemFeaturesParserContentHandler
+
+arg_param_len = {'.h': lambda t: len(t) != 1,
+                 '.q': lambda t: len(t) != 1,
+                 '.i': lambda t: len(t) != 3,
+                 '.l': lambda t: not 1 < len(t) < 5,
+                 '.rl': lambda t: not 2 < len(t) < 5,
+                 '.ri': lambda t: len(t) != 4,
+                 '.ti': lambda t: len(t) != 4,
+                 '.tl': lambda t: len(t) != 4,
+                 '.ci': lambda t: len(t) != 5,
+                 '.cl': lambda t: len(t) != 5,
+                 '.s': lambda t: len(t) != 2,
+                 '.sc': lambda t: len(t) != 4,
+                 '.cli': lambda t: not (len(t) == 4 or len(t) == 5 and t[4] == 'hyponyms'),
+                 '.slc': lambda t: not (len(t) == 5 or len(t) == 6 and t[5] == 'top'),
+                 '.md': lambda t: len(t) != 4,
+                 '.sg': lambda t: len(t) != 4
+                 }
 
 
 def process_query(wn, sf, query, out):
+    # START ARGPARSE
     t = query.split(' ')
+
+    if t[0] not in arg_param_len:
+        print('Unknown command\n', file=out)
+        return
+    elif arg_param_len[t[0]](t):
+        print('Incorrect format for command', t[0], end='\n\n', file=out)
+        return
+
     if t[0] == '.h':    # .h
         buf = ['Available commands:', '.h                                                this help',
                '.q                                                quit',
@@ -48,245 +75,134 @@ def process_query(wn, sf, query, out):
             buf.append('.sc <literal> <pos> <feature>                    check whether any sense of literal'
                        ' is compatible with semantic feature')
         print('\n'.join(buf), end='\n\n', file=out)
-        return
 
-    if t[0] == '.i':    # .i
-        if len(t) != 3:
-            print('Incorrect format for command', t[0], end='\n\n', file=out)
-            return
+    # STOP ARGPARSE
+
+    elif t[0] == '.q':
+        sys.exit(0)
+    elif len(t) == 0:
+        pass
+    elif t[0] == '.i':    # .i
         syns = wn.look_up_id(t[1], t[2])
-        if not syns:
+        if syns is None:
             print('Synset not found', end='\n\n', file=out)
         else:
-            write_synset(syns, out)
-            print('', file=out)
-        return
+            syns.write_str(out)
+            print(file=out)
 
-    if t[0] == '.l':    # .l
-        if len(t) < 2 or len(t) > 4:
-            print('Incorrect format for command', t[0], end='\n\n', file=out)
-            return
-
+    elif t[0] == '.l':   # .l
         if len(t) == 2:  # .l <literal>
             # For n, v, a, b elements we run the look_up_literal function,
             # then we flatten the resulting list of returned lists
-            res = [item for i in ('n', 'v', 'a', 'b') for item in wn.look_up_literal(t[1], i)]
+            wn.look_up_literal_for_pos_os(t[1], out)
 
-            if not res:
-                print('Literal not found', end='\n\n', file=out)
-            else:
-                for i in res:
-                    write_synset(i, out)
-                print('', file=out)
+        elif len(t) == 3:  # .l <literal> <pos>
+            wn.look_up_literal_for_pos_os(t[1], out, pos_list=(t[2],))
 
-        if len(t) == 3:  # .l <literal> <pos>
-            res = wn.look_up_literal(t[1], t[2])
-            if not res:
-                print('Literal not found', end='\n\n', file=out)
-            else:
-                for i in res:
-                    write_synset(i, out)
-                print('', file=out)
-
-        if len(t) == 4:  # .l <literal> <sensenum> <pos>
+        elif len(t) == 4:  # .l <literal> <sensenum> <pos>
             syns = wn.look_up_sense(t[1], int(t[2]), t[3])
-            if not syns:
+            if syns is None:
                 print('Word sense not found', end='\n\n', file=out)
             else:
-                write_synset(syns, out)
+                syns.write_str(out)
+                print(file=out)
+
+    elif t[0] == '.rl':   # .rl
+        senses = wn.look_up_literal(t[1], t[2])
+        if not senses:
+            print('Literal not found', file=out)
+
+        elif len(t) == 3:  # .rl <literal> <pos>
+            for j in senses:
+                j.write_str(out)
+                rs = set()
+                for _, rel in j.ilrs:
+                    if rel not in rs:
+                        print(' ', rel)
+                        rs.add(rel)
                 print('', file=out)
-        return
 
-    if t[0] == '.rl':   # .rl
-        if len(t) != 3 and len(t) != 4:
-            print('Incorrect format for command', t[0], end='\n\n', file=out)
-            return
+        elif len(t) == 4:  # .rl <literal> <pos> <relation>
+            for j in senses:
+                wn.write_synset_id_to_os(j.wnid, t[2], out)
+                for i in wn.look_up_relation(j.wnid, t[2], t[3]):
+                    print('  ', end='', file=out)
+                    wn.write_synset_id_to_os(i, t[2], out)
+                print('', file=out)
 
-        if len(t) == 3:  # .rl <literal> <pos>
-            ss = wn.look_up_literal(t[1], t[2])
-            if not ss:
-                print('Literal not found', file=out)
-            else:
-                for j in ss:
-                    write_synset(j, out)
-                    rs = set()
-                    for _, rel in j.ilrs:
-                        if rel not in rs:
-                            print(' ', rel)
-                            rs.add(rel)
-                    print('', file=out)
-
-        if len(t) == 4:  # .rl <literal> <pos> <relation>
-            ss = wn.look_up_literal(t[1], t[2])
-            if not ss:
-                print('Literal not found', file=out)
-            else:
-                for j in ss:
-                    write_synset_id(wn, j.wnid, t[2], out)
-                    ids = wn.look_up_relation(j.wnid, t[2], t[3])
-                    if ids:
-                        for i in ids:
-                            print('  ', end='', file=out)
-                            write_synset_id(wn, i, t[2], out)
-                    print('', file=out)
-        return
-
-    if t[0] == '.ri':   # .ri
-        if len(t) != 4:
-            print('Incorrect format for comman', t[0], end='\n\n', file=out)
-            return
-
+    elif t[0] == '.ri':   # .ri
         ids = wn.look_up_relation(t[1], t[2], t[3])
-        if not ids:
+        if len(ids) == 0:
             print('Synset not found or has no relations of the specified type', file=out)
         else:
             for i in ids:
-                write_synset_id(wn, i, t[2], out)
-        return
+                wn.write_synset_id_to_os(i, t[2], out)
 
-    if t[0] == '.ti':   # .ti
-        if len(t) != 4:
-            print('Incorrect format for command', t[0], end='\n\n', file=out)
-            return
+    elif t[0] == '.ti':   # .ti
+        wn.trace_realation_os(t[1], t[2], t[3], out)
 
-        oss = wn.trace_relation_os(t[1], t[2], t[3])
-        if not oss:
-            print('Synset not found\n', file=out)
-        else:
-            print('\n'.join(oss), end='\n\n', file=out)
-        return
-
-    if t[0] == '.tl':   # .tl
-        if len(t) != 4:
-            print('Incorrect format for command', t[0], end='\n\n', file=out)
-            return
-
+    elif t[0] == '.tl':   # .tl
         senses = wn.look_up_literal(t[1], t[2])
-        if not senses:
+        if len(senses) == 0:
             print('Literal not found', end='\n\n', file=out)
         else:
             for i in senses:
-                oss = wn.trace_relation_os(i.wnid, t[2], t[3])
-                if not oss:
-                    print('Synset not found', end='\n\n', file=out)
-                else:
-                    print('\n'.join(oss), end='\n\n', file=out)
-        return
+                wn.trace_realation_os(i.wnid, t[2], t[3], out)
 
-    if t[0] == '.ci':   # .ci
-        if len(t) < 5:
-            print('Incorrect format for command', t[0], end='\n\n', file=out)
-            return
-
+    elif t[0] == '.ci':   # .ci
         foundtarg = wn.is_id_connected_with(t[1], t[2], t[3], set(t[4:]))
-        if foundtarg:
-            print('Connection found to', foundtarg, file=out)
+        if foundtarg is not None:
+            print('Connection found:\nTarget id: ', foundtarg, file=out)
         else:
             print('No connection found', file=out)
-        return
 
-    if t[0] == '.cl':   # .cl
-        if len(t) < 5:
-            print('Incorrect format for command', t[0], end='\n\n', file=out)
-            return
-
+    elif t[0] == '.cl':   # .cl
         foundid, foundtarg = wn.is_literal_connected_with(t[1], t[2], t[3], set(t[4:]))
-        if foundid and foundtarg:
+        if foundid is not None and foundtarg is not None:
             print('Connection found:\nSense of literal: ', foundid, '\nTarget id: ', foundtarg,  sep='', file=out)
         else:
             print('No connection found', file=out)
-        return
 
-    if t[0] == '.s':    # .s
+    elif t[0] == '.s':    # .s
         if not sf:
             print('Sorry, semantic features not loaded.', file=out)
-            return
-
-        if len(t) != 2:
-            print('Incorrect format for command', t[0], end='\n\n', file=out)
-            return
-
-        ids = sorted(sf.look_up_feature(t[1]))
-        if ids:
-            print(len(ids), ' synset(s) found:\n', '\n'.join(ids), sep='', file=out)
         else:
-            print('Semantic feature not found', file=out)
-        return
+            ids = sorted(sf.look_up_feature(t[1]))
+            if len(ids) > 0:
+                print(len(ids), ' synset(s) found:\n', '\n'.join(ids), sep='', file=out)
+            else:
+                print('Semantic feature not found', file=out)
 
-    if t[0] == '.sc':   # .sc
+    elif t[0] == '.sc':   # .sc
         if not sf:
             print('Sorry, semantic features not loaded.', file=out)
-            return
-
-        if len(t) != 4:
-            print('Incorrect format for command', t[0], end='\n\n', file=out)
-            return
-
-        foundid, foundtargid = sf.is_literal_compatible_with_feature(t[1], t[2], t[3])
-        if foundid and foundtargid:
-            print('Compatibility found:\nSense of literal: ', end='', file=out)
-            write_synset_id(wn, foundid, t[2], out)
-            print('Synset ID pertaining to feature: ', end='', file=out)
-            write_synset_id(wn, foundtargid, t[2], out)
         else:
-            print('Compatibility not found', file=out)
-        return
+            foundid, foundtargid = sf.is_literal_compatible_with_feature(t[1], t[2], t[3])
+            if foundid is not None and foundtargid is not None:
+                print('Compatibility found:\nSense of literal: ', end='', file=out)
+                wn.write_synset_id_to_os(foundid, t[2], out)
+                print('Synset ID pertaining to feature: ', end='', file=out)
+                wn.write_synset_id_to_os(foundtargid, t[2], out)
+            else:
+                print('Compatibility not found', file=out)
 
-    if t[0] == '.cli':  # .cli <literal> <pos> <id> [hyponyms]
-        hyps = len(t) == 5 and t[4] == 'hyponyms'
-
-        if not (len(t) == 4 or hyps):
-            print('Incorrect format for command', t[0], end='\n\n', file=out)
-            return
-
-        if wn.is_literal_compatible_with_synset(t[1], t[2], t[3], hyps):
+    elif t[0] == '.cli':  # .cli <literal> <pos> <id> [hyponyms]
+        if wn.is_literal_compatible_with_synset(t[1], t[2], t[3], t[4] == 'hyponyms'):
             print('Compatible', file=out)
         else:
             print('Not compatible', file=out)
-        return
 
-    if t[0] == '.slc':  # .slc <literal1> <literal2> <pos> <relation>
-        addtop = len(t) == 6 and t[5] == 'top'
-
-        if not (len(t) == 5 or addtop):
-            print('Incorrect format for command', t[0], end='\n\n', file=out)
-            return
-
+    elif t[0] == '.slc':  # .slc <literal1> <literal2> <pos> <relation>
         print('Results:', file=out)
-        for key, (wnid1, wnid2) in sorted(wn.similarity_leacock_chodorow(t[1], t[2], t[3], t[4], addtop).items(),
+        for key, (wnid1, wnid2) in sorted(wn.similarity_leacock_chodorow(t[1], t[2], t[3], t[4], t[5] == 'top').items(),
                                           reverse=True):  # tSims
             print('  ', key, '\t', wnid1, '  ', wnid2, sep='', file=out)
-        return
 
-    if t[0] == '.md':   # .md
-        if len(t) != 4:
-            print('Incorrect format for command', t[0], end='\n\n', file=out)
-            return
-
+    elif t[0] == '.md':   # .md
         print(wn.get_max_depth(t[1], t[2], t[3]), file=out)
-        return
 
-    if t[0] == '.sg':   # .sg
-        if len(t) != 4:
-            print('Incorrect format for command', t[0], end='\n\n', file=out)
-            return
-
+    elif t[0] == '.sg':   # .sg
         print(wn.get_sub_graph_size(t[1], t[2], t[3]), file=out)
-        return
-
-    print('Unknown command\n', file=out)
-
-
-def write_synset(syns, out):
-    """This is exact same function as Synset.write_str(out)"""
-    print(syns.wnid, '  {', ', '.join(f'{i.literal}:{i.sense}' for i in syns.synonyms),
-          '}  (', syns.definition, ')', sep='', file=out)
-
-
-def write_synset_id(wn, wnid, pos, out):
-    syns = wn.look_up_id(wnid, pos)
-    if syns:
-        write_synset(syns, out)
 
 
 def main():
@@ -298,40 +214,25 @@ def main():
     print('Reading XML...', file=sys.stderr)
     # Logging to devnull for all OS
     # Source: http://stackoverflow.com/a/2929946
-    wn = WNQuery.WNQuery(sys.argv[1], open(os.devnull, 'w'))
+    wn = WNQuery(sys.argv[1], open(os.devnull, 'w'))
     wn.write_stats(sys.stderr)
 
     # init SemFeatures (if appl.)
     if len(sys.argv) == 3:
         print('Reading SemFeatures...', file=sys.stderr)
-        sf = SemFeatures.SemFeaturesParserContentHandler(wn)
-        stats = sf.read_xml(sys.argv[2])
-        print(stats, 'pairs read', file=sys.stderr)
+        sf = SemFeaturesParserContentHandler.read_xml(wn, sys.argv[2], sys.stderr)
     else:
         sf = None
 
     # query loop
     print('Type your query, or .h for help, .q to quit', file=sys.stderr)
     while True:
-        # print('>', end='', file=sys.stderr)
-        # line = sys.stdin.readline().strip()
         sys.stderr.flush()
         line = input('>').strip()
-        if line == '.q':
-            sys.exit(0)
-        elif line != '':
-            try:
-                process_query(wn, sf, line, sys.stdout)
-            except InvalidPOSException as e:
-                print(e, file=sys.stderr)
-
-
-class InvalidPOSException(Exception):
-    def __init__(self, message):
-        self.message = message
-
-    def __str__(self):
-        return repr(self.message)
+        try:
+            process_query(wn, sf, line, sys.stdout)
+        except InvalidPOSException as e:
+            print(e, file=sys.stderr)
 
 
 if __name__ == '__main__':

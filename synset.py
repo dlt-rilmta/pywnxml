@@ -2,14 +2,15 @@
 # -*- coding: utf-8, vim: expandtab:ts=4 -*-
 
 import re
+PCDATA_RE = re.compile('&(?![a-zA-Z0-9_#-]+;)')
 
 
 class Synonym:
-    def __init__(self, lit, s, o='', n=''):
-        self.literal = lit
-        self.sense = s
-        self.lnote = o
-        self.nucleus = n
+    def __init__(self, literal, sense, lnote='', nucleus=''):
+        self.literal = literal
+        self.sense = sense
+        self.lnote = lnote
+        self.nucleus = nucleus
 
     def __str__(self):
         return f'Synonym(literal: {self.literal}, sense: {self.sense}, lnote: {self.lnote}, nucleus: {self.nucleus})'
@@ -40,16 +41,10 @@ class Synset:
         self.ekszlinks = []     # (sense-id, link-type) pairs of EKSz links
         self.vframelinks = []   # (verb-frame-id, link-type) pairs of verb frame links
 
-        self.synonyms = []  # Vector of Synonym type
-
-    def empty(self):
-        """
-        check if empty
-        """
-        return self.wnid == ''
+        self.synonyms: [Synonym] = []  # Vector of Synonym type
 
     @staticmethod
-    def str_list_of_pair(name, var):
+    def _str_list_of_pair(name, var):
         buf = ', '.join(sorted(f'({key}, {val})' for key, val in var))
         return f'{name}([{buf}])'
 
@@ -58,10 +53,10 @@ class Synset:
         snotes = ', '.join(sorted(self.snotes))
         buf = [f'Synset(wnid: {self.wnid}, pos: {self.pos}, definition: {self.definition}, bcs: {self.bcs},'
                f' stamp: {self.stamp}, domain: {self.domain}, nl: {self.nl}, tnl: {self.tnl}, Usages([{usages}]),'
-               f' Snotes([{snotes}])', self.str_list_of_pair('Ilrs', self.ilrs),
-               self.str_list_of_pair('Sumolinks', self.sumolinks), self.str_list_of_pair('Elrs', self.elrs),
-               self.str_list_of_pair('Ekszlinks', self.ekszlinks),
-               self.str_list_of_pair('Vframelinks', self.vframelinks)]
+               f' Snotes([{snotes}])', self._str_list_of_pair('Ilrs', self.ilrs),
+               self._str_list_of_pair('Sumolinks', self.sumolinks), self._str_list_of_pair('Elrs', self.elrs),
+               self._str_list_of_pair('Ekszlinks', self.ekszlinks),
+               self._str_list_of_pair('Vframelinks', self.vframelinks)]
         for s in self.synonyms:
             buf.append(str(s))
         ret = ', '.join(buf) + ')'
@@ -91,6 +86,7 @@ class Synset:
     @staticmethod
     def write_xml_header(out):
         """Write XML declaration, DTD reference and root opening tag to out."""
+
         xml_decl = '<?xml version="1.0" encoding="UTF-8"?>'
         xml_doctypedecl = '<!DOCTYPE WNXML SYSTEM "wnxml.dtd">'
         print(xml_decl, xml_doctypedecl, '<WNXML>', sep='\n', file=out)
@@ -144,13 +140,9 @@ class Synset:
 
         self._tag_helper2(self.nl, 'NL', self.tnl, 'TNL', out)
 
-        self._tag_helper(self.elrs, 'ELR', out)
-
-        self._tag_helper(self.elrs3, 'ELR3', out)
-
-        self._tag_helper(self.ekszlinks, 'EKSZ', out)
-
-        self._tag_helper(self.vframelinks, 'VFRAME', out)
+        for var, tag in ((self.elrs, 'ELR'), (self.elrs3, 'ELR3'), (self.ekszlinks, 'EKSZ'),
+                         (self.vframelinks, 'VFRAME')):
+            self._tag_helper(var, tag, out)
 
         print('</SYNSET>', end='', file=out)
 
@@ -177,21 +169,16 @@ class Synset:
 
     def write_str(self, out):
         """
-        Write string representation (see below) to stream
+        Write string representation '<id> {<literal:sid>,...} (<definiton>)' to stream
         """
-        print(self.to_string(), end='', file=out)
-
-    def to_string(self):
-        """
-        Return string representation: '<id> {<literal:sid>,...} (<definiton>)'
-        """
-        synonyms = ', '.join(f'{i.literal}:{i.sense}' for i in self.synonyms)
-        return f'{self.wnid}  {{{synonyms}}}  ({self.definition})'
+        print(self.wnid, '  {', ', '.join(f'{i.literal}:{i.sense}' for i in self.synonyms),
+              '}  (', self.definition, ')', sep='', file=out)
 
     def _tagstr(self, tag, string):
+        # TODO: Some tags are optional, some are mandatory! They should be treated here in an unified manner...
         return f'<{tag}>{self._escape_pcdata_chars(string)}</{tag}>'
 
     @staticmethod
     def _escape_pcdata_chars(string):
-        return re.sub('&(?![a-zA-Z0-9_#-]+;)', '&amp;', string).replace('<', '&lt;').replace('>', '&gt;').\
-            replace('\'', '&apos;').replace('"', '&quot;')
+        return PCDATA_RE.sub('&amp;', string).replace('<', '&lt;').replace('>', '&gt;').replace('\'', '&apos;').\
+            replace('"', '&quot;')

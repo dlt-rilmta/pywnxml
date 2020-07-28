@@ -6,7 +6,7 @@ from xml.sax.handler import ErrorHandler, ContentHandler
 from xml.sax.xmlreader import Locator
 from xml.sax import make_parser
 
-import synset
+from synset import Synset, Synonym
 
 DEBUG = False
 
@@ -38,7 +38,7 @@ class WNXMLParserContentHandler(ContentHandler):
         self.m_lcnt = 0                # input line number
         self.m_ppath = []              # contains the XML path to the current node (names of the ancestors)
         self.m_done = -1               # -1: not started synset yet, 0: inside synset, 1: done with synset
-        self.m_syns = synset.Synset()  # points to the output struct
+        self.m_syns = Synset()         # points to the output struct
         self.m_syns_list = []          # points to the output struct
 
         self.m_ilrs0_temp = ''         # Temp vars for Tuples (std::pair in C++)
@@ -95,7 +95,7 @@ class WNXMLParserContentHandler(ContentHandler):
             self.m_lcnt = self._locator.getLineNumber()
 
         elif name == 'LITERAL' and parent == 'SYNONYM' and gparent == 'SYNSET':
-            self.m_syns.synonyms.append(synset.Synonym('', ''))
+            self.m_syns.synonyms.append(Synonym('', ''))
 
         elif name == 'ILR' and parent == 'SYNSET':
             self.m_ilrs0_temp = ''
@@ -294,7 +294,7 @@ class WNXMLParserContentHandler(ContentHandler):
                                            ' \'SYNSET\' end tag without previous begin tag')
             self.m_done = 1
             self.m_syns_list.append((self.m_syns, self.m_lcnt))
-            self.m_syns = synset.Synset()
+            self.m_syns = Synset()
 
         elif name == 'ILR' and parent == 'SYNSET':
             self.m_syns.ilrs.append((self.m_ilrs0_temp, self.m_ilrs1_temp))
@@ -309,12 +309,12 @@ class WNXMLParserContentHandler(ContentHandler):
         elif name == 'ELR' and parent == 'SYNSET':
             self.m_syns.elrs.append((self.m_elrs0_temp, self.m_elrs1_temp))
             self.m_elrs0_temp = ''
-            self.m_elrs0_temp = ''
+            self.m_elrs1_temp = ''
 
         elif name == 'ELR3' and parent == 'SYNSET':
             self.m_syns.elrs3.append((self.m_elrs30_temp, self.m_elrs31_temp))
             self.m_elrs30_temp = ''
-            self.m_elrs30_temp = ''
+            self.m_elrs31_temp = ''
 
         elif name == 'EKSZ' and parent == 'SYNSET':
             self.m_syns.ekszlinks.append((self.m_ekszlinks0_temp, self.m_ekszlinks1_temp))
