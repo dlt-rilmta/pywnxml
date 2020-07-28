@@ -21,13 +21,13 @@ class WNXMLParserException(Exception):
 
 class WNXMLParserErrorHandler(ErrorHandler):
     def warning(self, msg):
-        print('SAX parser warning: {0}'.format(msg), file=sys.stderr)
+        print('SAX parser warning:', msg, file=sys.stderr)
 
     def error(self, msg):
-        raise WNXMLParserException('SAX parser error: {0}'.format(msg))
+        raise WNXMLParserException(f'SAX parser error: {msg}')
 
     def fatal(self, msg):
-        raise WNXMLParserException('SAX parser fatal error: {0}'.format(msg))
+        raise WNXMLParserException(f'SAX parser fatal error: {msg}')
 
 
 class WNXMLParserContentHandler(ContentHandler):
@@ -68,8 +68,8 @@ class WNXMLParserContentHandler(ContentHandler):
 
     def startElement(self, name, attrs):
         if DEBUG:
-            print('({0}, {1}): /{2}/START: {3}'.format(self._locator.getLineNumber(), self._locator.getColumnNumber(),
-                                                       '/'.join(self.m_ppath), name))
+            print('(', self._locator.getLineNumber(), ', ', self._locator.getColumnNumber(), '): /',
+                  '/'.join(self.m_ppath), '/START: ', name, sep='')
 
         self.m_ppath.append(name)
 
@@ -89,8 +89,8 @@ class WNXMLParserContentHandler(ContentHandler):
 
         elif name == 'SYNSET':
             if self.m_done == 0:
-                raise WNXMLParserException('WNXMLParser internal error: SYNSET should start now,'
-                                           ' but m_done is not 0 ({0})!'.format(self.m_done))
+                raise WNXMLParserException(f'WNXMLParser internal error: SYNSET should start now,'
+                                           ' but m_done is not 0 ({self.m_done})!')
             self.m_done = 0
             self.m_lcnt = self._locator.getLineNumber()
 
@@ -147,8 +147,8 @@ class WNXMLParserContentHandler(ContentHandler):
 
     def characters(self, chrs):
         if DEBUG:
-            print('({0}, {1}): /{2}/#PCDATA: {3}'.format(self._locator.getLineNumber(), self._locator.getColumnNumber(),
-                                                         '/'.join(self.m_ppath), chrs))
+            print('(', self._locator.getLineNumber(), ', ', self._locator.getColumnNumber(), '): /',
+                  '/'.join(self.m_ppath), '#PCDATA: ', chrs, sep='')
 
         if self.m_done == 1 or self.m_done == -1:
             return
@@ -191,8 +191,8 @@ class WNXMLParserContentHandler(ContentHandler):
 
         elif parent == 'LNOTE' and gparent == 'LITERAL' and ggparent == 'SYNONYM':  # SYNSET/SYNONYM/LITERAL/LNOTE
             if len(self.m_syns.synonyms) == 0:
-                raise WNXMLParserException('WNXMLParser internal error: synonyms empty({0}) at LNOTE tag'.
-                                           format(len(self.m_syns.synonyms)))
+                raise WNXMLParserException(f'WNXMLParser internal error: synonyms empty({len(self.m_syns.synonyms)})'
+                                           ' at LNOTE tag')
             self.m_syns.synonyms[-1].lnote += chrs
 
         elif parent == 'NUCLEUS' and gparent == 'LITERAL' and ggparent == 'SYNONYM':  # SYNSET/SYNONYM/LITERAL/NUCLEUS
@@ -277,8 +277,8 @@ class WNXMLParserContentHandler(ContentHandler):
 
     def endElement(self, name):
         if DEBUG:
-            print('({0}, {1}): /{2}/END: {3}'.format(self._locator.getLineNumber(), self._locator.getColumnNumber(),
-                                                     '/'.join(self.m_ppath), name))
+            print('(', self._locator.getLineNumber(), ', ', self._locator.getColumnNumber(), '): /',
+                  '/'.join(self.m_ppath), '/END: ', name, sep='')
 
         if len(self.m_ppath) >= 2:
             parent = self.m_ppath[-2]

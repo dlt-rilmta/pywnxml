@@ -70,7 +70,7 @@ class WNQuery:
         try:
             fh = open(wnxmlfilename, encoding='UTF-8')
         except (OSError, IOError) as e:
-            raise WNQueryException('Could not open file: {0} because: {1}'.format(wnxmlfilename, e))
+            raise WNQueryException(f'Could not open file: {wnxmlfilename} because: {e}')
 
         # parse input file
         for syns, lcnt in WNXMLParser.WNXMLParserContentHandler().parse(fh):
@@ -86,28 +86,14 @@ class WNQuery:
         self.m_bidx.default_factory = None
 
         if DEBUG:
-            for key, val in self.m_ndat.items():
-                print('{0}: {1}'.format(key, str(val)), file=sys.stdout)
-            for key, val in self.m_vdat.items():
-                print('{0}: {1}'.format(key, str(val)), file=sys.stdout)
-            for key, val in self.m_adat.items():
-                print('{0}: {1}'.format(key, str(val)), file=sys.stdout)
-            for key, val in self.m_bdat.items():
-                print('{0}: {1}'.format(key, str(val)), file=sys.stdout)
+            for curr_dict in (self.m_ndat, self.m_vdat, self.m_adat, self.m_bdat):
+                for key, val in curr_dict.items():
+                    print(key, ': ', val, sep='', file=sys.stdout)
 
         if DEBUG2:
-            for key, val in self.m_nidx.items():
-                for vi in val:
-                    print('{0}: {1}'.format(key, vi), file=sys.stdout)
-            for key, val in self.m_vidx.items():
-                for vi in val:
-                    print('{0}: {1}'.format(key, vi), file=sys.stdout)
-            for key, val in self.m_aidx.items():
-                for vi in val:
-                    print('{0}: {1}'.format(key, vi), file=sys.stdout)
-            for key, val in self.m_bidx.items():
-                for vi in val:
-                    print('{0}: {1}'.format(key, vi), file=sys.stdout)
+            for curr_dict in (self.m_nidx, self.m_vidx, self.m_aidx, self.m_bidx):
+                for key, val in curr_dict.items():
+                    print(key, ': ', val, sep='', file=sys.stdout)
 
         self.LeaCho_D = {}
         self.LeaCho_noconnect = - 1.0
@@ -131,10 +117,10 @@ class WNQuery:
         for it in self.idx('b').values():
             bidx_len += len(it)
         print('PoS\t\t#synsets\t#word senses\t#words', file=os)
-        print('Nouns\t\t{0}\t\t{1}\t\t{2}'.format(len(self.dat('n')), nidx_len, len(self.idx('n'))), file=os)
-        print('Verbs\t\t{0}\t\t{1}\t\t{2}'.format(len(self.dat('v')), vidx_len, len(self.idx('v'))), file=os)
-        print('Adjectives\t{0}\t\t{1}\t\t{2}'.format(len(self.dat('a')), aidx_len, len(self.idx('a'))), file=os)
-        print('Adverbs\t\t{0}\t\t{1}\t\t{2}'.format(len(self.dat('b')), bidx_len, len(self.idx('b'))), file=os)
+        print('Nouns', len(self.dat('n')), nidx_len, len(self.idx('n')), sep='\t\t', file=os)
+        print('Verbs', len(self.dat('v')), vidx_len, len(self.idx('v')), sep='\t\t', file=os)
+        print('Adjectives\t', len(self.dat('a')), '\t\t', aidx_len, '\t\t', len(self.idx('a')), file=os)
+        print('Adverbs', len(self.dat('b')), bidx_len, len(self.idx('b')), sep='\t\t', file=os)
 
     def _save_synset(self, syns, lcnt):
         if syns.empty():
@@ -142,8 +128,8 @@ class WNQuery:
         try:
             # check if id already exists, print warning if yes
             if syns.wnid in self.dat(syns.pos):
-                print('Warning W01: synset with this id ({0}) already exists (input line {1})'.format(syns.wnid, lcnt),
-                      file=self.log)
+                print('Warning W01: synset with this id (', syns.wnid, ') already exists (input line ', lcnt, ')',
+                      sep='', file=self.log)
                 return
 
             # store synset
@@ -153,7 +139,7 @@ class WNQuery:
                 self.idx(syns.pos)[i.literal].append(syns.wnid)
 
         except InvalidPOSException as e:
-            print('Warning W02: {0} for synset in input line {1}'.format(e, lcnt), file=self.log)
+            print('Warning W02:', e, 'for synset in input line ', lcnt, file=self.log)
 
     def invert_relations(self):
         """
@@ -219,7 +205,7 @@ class WNQuery:
         elif pos == 'b':
             return self.m_bdat
         else:
-            raise InvalidPOSException('Invalid POS \'{0}\''.format(pos))
+            raise InvalidPOSException(f'Invalid POS \'{pos}\'')
 
     def idx(self, pos):
         """
@@ -236,7 +222,7 @@ class WNQuery:
         elif pos == 'b':
             return self.m_bidx
         else:
-            raise InvalidPOSException('Invalid POS \'{0}\''.format(pos))
+            raise InvalidPOSException(f'Invalid POS \'{pos}\'')
 
     def look_up_id(self, wnid, pos):
         """
@@ -389,9 +375,9 @@ class WNQuery:
         # look up current synset
         if wnid in self.dat(pos):  # found
             # print current synset
-            current = ['{0}:{1}'.format(i.literal, i.sense) for i in self.dat(pos)[wnid].synonyms]
-            buf.append('{0}{1}  {{{2}}}  ({3})'.format('  '*lev, self.dat(pos)[wnid].wnid, ', '.join(current),
-                                                       self.dat(pos)[wnid].definition))
+            indent = '  '*lev
+            current = ', '.join(f'{i.literal}:{i.sense}' for i in self.dat(pos)[wnid].synonyms)
+            buf.append(f'{indent}{self.dat(pos)[wnid].wnid}  {{{current}}}  ({self.dat(pos)[wnid].definition})')
             # recurse on children
             for synset_id, relation in self.dat(pos)[wnid].ilrs:  # for all relations of synset
                 if relation == rel:  # if it is the right type

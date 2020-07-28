@@ -20,13 +20,13 @@ class SemFeaturesParserException(Exception):
 
 class SemFeaturesParserErrorHandler(ErrorHandler):
     def warning(self, msg):
-        print('SAX parser warning: {0}'.format(msg), file=sys.stderr)
+        print('SAX parser warning:', msg, file=sys.stderr)
 
     def error(self, msg):
-        raise SemFeaturesParserException('SAX parser error: {0}'.format(msg))
+        raise SemFeaturesParserException(f'SAX parser error: {msg}')
 
     def fatal(self, msg):
-        raise SemFeaturesParserException('SAX parser fatal error: {0}'.format(msg))
+        raise SemFeaturesParserException(f'SAX parser fatal error: {msg}')
 
 
 class SemFeaturesParserContentHandler(ContentHandler):
@@ -48,8 +48,8 @@ class SemFeaturesParserContentHandler(ContentHandler):
 
     def startElement(self, name, attrs):
         if DEBUG:
-            print('({0}, {1}): /{2}/START: {3}'.format(self._locator.getLineNumber(), self._locator.getColumnNumber(),
-                                                       '/'.join(self.m_ppath), name))
+            print('(', self._locator.getLineNumber(), ', ', self._locator.getColumnNumber(), '): /',
+                  '/'.join(self.m_ppath), '/START: ', name, sep='')
 
         self.m_ppath.append(name)
 
@@ -64,13 +64,13 @@ class SemFeaturesParserContentHandler(ContentHandler):
 
     def characters(self, chrs):
         if DEBUG:
-            print('({0}, {1}): /{2}/#PCDATA: {3}'.format(self._locator.getLineNumber(), self._locator.getColumnNumber(),
-                                                         '/'.join(self.m_ppath), chrs))
+            print('(', self._locator.getLineNumber(), ', ', self._locator.getColumnNumber(), '): /',
+                  '/'.join(self.m_ppath), '#PCDATA: ', chrs, sep='')
 
     def endElement(self, name):
         if DEBUG:
-            print('({0}, {1}): /{2}/END: {3}'.format(self._locator.getLineNumber(), self._locator.getColumnNumber(),
-                                                     '/'.join(self.m_ppath), name))
+            print('(', self._locator.getLineNumber(), ', ', self._locator.getColumnNumber(), '): /',
+                  '/'.join(self.m_ppath), '/END: ', name, sep='')
 
         self.m_ppath.pop()
 
@@ -117,7 +117,7 @@ class SemFeaturesParserContentHandler(ContentHandler):
         try:
             fh = open(semfeaturesfilename, encoding='UTF-8')
         except (OSError, IOError) as e:
-            raise SemFeaturesParserException('Could not open file: {0} because: {1}'.format(semfeaturesfilename, e))
+            raise SemFeaturesParserException(f'Could not open file: {semfeaturesfilename} because: {e}')
         # Magic lies here
         # Source: http://stackoverflow.com/a/12263340
         # Make parser

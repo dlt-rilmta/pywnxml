@@ -52,11 +52,11 @@ def process_query(wn, sf, query, out):
 
     if t[0] == '.i':    # .i
         if len(t) != 3:
-            print('Incorrect format for command {0}\n'.format(t[0]), file=out)
+            print('Incorrect format for command', t[0], end='\n\n', file=out)
             return
         syns = wn.look_up_id(t[1], t[2])
         if not syns:
-            print('Synset not found\n', file=out)
+            print('Synset not found', end='\n\n', file=out)
         else:
             write_synset(syns, out)
             print('', file=out)
@@ -64,7 +64,7 @@ def process_query(wn, sf, query, out):
 
     if t[0] == '.l':    # .l
         if len(t) < 2 or len(t) > 4:
-            print('Incorrect format for command {0}\n'.format(t[0]), file=out)
+            print('Incorrect format for command', t[0], end='\n\n', file=out)
             return
 
         if len(t) == 2:  # .l <literal>
@@ -73,7 +73,7 @@ def process_query(wn, sf, query, out):
             res = [item for i in ('n', 'v', 'a', 'b') for item in wn.look_up_literal(t[1], i)]
 
             if not res:
-                print('Literal not found\n', file=out)
+                print('Literal not found', end='\n\n', file=out)
             else:
                 for i in res:
                     write_synset(i, out)
@@ -82,7 +82,7 @@ def process_query(wn, sf, query, out):
         if len(t) == 3:  # .l <literal> <pos>
             res = wn.look_up_literal(t[1], t[2])
             if not res:
-                print('Literal not found\n', file=out)
+                print('Literal not found', end='\n\n', file=out)
             else:
                 for i in res:
                     write_synset(i, out)
@@ -91,7 +91,7 @@ def process_query(wn, sf, query, out):
         if len(t) == 4:  # .l <literal> <sensenum> <pos>
             syns = wn.look_up_sense(t[1], int(t[2]), t[3])
             if not syns:
-                print('Word sense not found\n', file=out)
+                print('Word sense not found', end='\n\n', file=out)
             else:
                 write_synset(syns, out)
                 print('', file=out)
@@ -99,7 +99,7 @@ def process_query(wn, sf, query, out):
 
     if t[0] == '.rl':   # .rl
         if len(t) != 3 and len(t) != 4:
-            print('Incorrect format for command {0}\n'.format(t[0]), file=out)
+            print('Incorrect format for command', t[0], end='\n\n', file=out)
             return
 
         if len(t) == 3:  # .rl <literal> <pos>
@@ -112,7 +112,7 @@ def process_query(wn, sf, query, out):
                     rs = set()
                     for _, rel in j.ilrs:
                         if rel not in rs:
-                            print('  {0}'.format(rel))
+                            print(' ', rel)
                             rs.add(rel)
                     print('', file=out)
 
@@ -133,7 +133,7 @@ def process_query(wn, sf, query, out):
 
     if t[0] == '.ri':   # .ri
         if len(t) != 4:
-            print('Incorrect format for command {0}\n'.format(t[0]), file=out)
+            print('Incorrect format for comman', t[0], end='\n\n', file=out)
             return
 
         ids = wn.look_up_relation(t[1], t[2], t[3])
@@ -146,7 +146,7 @@ def process_query(wn, sf, query, out):
 
     if t[0] == '.ti':   # .ti
         if len(t) != 4:
-            print('Incorrect format for command {0}\n'.format(t[0]), file=out)
+            print('Incorrect format for command', t[0], end='\n\n', file=out)
             return
 
         oss = wn.trace_relation_os(t[1], t[2], t[3])
@@ -158,41 +158,41 @@ def process_query(wn, sf, query, out):
 
     if t[0] == '.tl':   # .tl
         if len(t) != 4:
-            print('Incorrect format for command {0}\n'.format(t[0]), file=out)
+            print('Incorrect format for command', t[0], end='\n\n', file=out)
             return
 
         senses = wn.look_up_literal(t[1], t[2])
         if not senses:
-            print('Literal not found\n', file=out)
+            print('Literal not found', end='\n\n', file=out)
         else:
             for i in senses:
                 oss = wn.trace_relation_os(i.wnid, t[2], t[3])
                 if not oss:
-                    print('Synset not found\n', file=out)
+                    print('Synset not found', end='\n\n', file=out)
                 else:
                     print('\n'.join(oss), end='\n\n', file=out)
         return
 
     if t[0] == '.ci':   # .ci
         if len(t) < 5:
-            print('Incorrect format for command {0}\n'.format(t[0]), file=out)
+            print('Incorrect format for command', t[0], end='\n\n', file=out)
             return
 
         foundtarg = wn.is_id_connected_with(t[1], t[2], t[3], set(t[4:]))
         if foundtarg:
-            print('Connection found to {0}'.format(foundtarg), file=out)
+            print('Connection found to', foundtarg, file=out)
         else:
             print('No connection found', file=out)
         return
 
     if t[0] == '.cl':   # .cl
         if len(t) < 5:
-            print('Incorrect format for command {0}\n'.format(t[0]), file=out)
+            print('Incorrect format for command', t[0], end='\n\n', file=out)
             return
 
         foundid, foundtarg = wn.is_literal_connected_with(t[1], t[2], t[3], set(t[4:]))
         if foundid and foundtarg:
-            print('Connection found:\nSense of literal: {0}\nTarget id: {1}'.format(foundid, foundtarg), file=out)
+            print('Connection found:\nSense of literal: ', foundid, '\nTarget id: ', foundtarg,  sep='', file=out)
         else:
             print('No connection found', file=out)
         return
@@ -203,12 +203,12 @@ def process_query(wn, sf, query, out):
             return
 
         if len(t) != 2:
-            print('Incorrect format for command {0}\n'.format(t[0]), file=out)
+            print('Incorrect format for command', t[0], end='\n\n', file=out)
             return
 
         ids = sorted(sf.look_up_feature(t[1]))
         if ids:
-            print('{0} synset(s) found:\n{1}'.format(len(ids), '\n'.join(ids)), file=out)
+            print(len(ids), ' synset(s) found:\n', '\n'.join(ids), sep='', file=out)
         else:
             print('Semantic feature not found', file=out)
         return
@@ -219,7 +219,7 @@ def process_query(wn, sf, query, out):
             return
 
         if len(t) != 4:
-            print('Incorrect format for command {0}\n'.format(t[0]), file=out)
+            print('Incorrect format for command', t[0], end='\n\n', file=out)
             return
 
         foundid, foundtargid = sf.is_literal_compatible_with_feature(t[1], t[2], t[3])
@@ -236,7 +236,7 @@ def process_query(wn, sf, query, out):
         hyps = len(t) == 5 and t[4] == 'hyponyms'
 
         if not (len(t) == 4 or hyps):
-            print('Incorrect format for command {0}\n'.format(t[0]), file=out)
+            print('Incorrect format for command', t[0], end='\n\n', file=out)
             return
 
         if wn.is_literal_compatible_with_synset(t[1], t[2], t[3], hyps):
@@ -249,18 +249,18 @@ def process_query(wn, sf, query, out):
         addtop = len(t) == 6 and t[5] == 'top'
 
         if not (len(t) == 5 or addtop):
-            print('Incorrect format for command {0}\n'.format(t[0]), file=out)
+            print('Incorrect format for command', t[0], end='\n\n', file=out)
             return
 
         print('Results:', file=out)
         for key, (wnid1, wnid2) in sorted(wn.similarity_leacock_chodorow(t[1], t[2], t[3], t[4], addtop).items(),
                                           reverse=True):  # tSims
-            print('  {0}\t{1}  {2}'.format(key, wnid1, wnid2), file=out)
+            print('  ', key, '\t', wnid1, '  ', wnid2, sep='', file=out)
         return
 
     if t[0] == '.md':   # .md
         if len(t) != 4:
-            print('Incorrect format for command {0}\n'.format(t[0]), file=out)
+            print('Incorrect format for command', t[0], end='\n\n', file=out)
             return
 
         print(wn.get_max_depth(t[1], t[2], t[3]), file=out)
@@ -268,7 +268,7 @@ def process_query(wn, sf, query, out):
 
     if t[0] == '.sg':   # .sg
         if len(t) != 4:
-            print('Incorrect format for command {0}\n'.format(t[0]), file=out)
+            print('Incorrect format for command', t[0], end='\n\n', file=out)
             return
 
         print(wn.get_sub_graph_size(t[1], t[2], t[3]), file=out)
@@ -279,10 +279,8 @@ def process_query(wn, sf, query, out):
 
 def write_synset(syns, out):
     """This is exact same function as Synset.write_str(out)"""
-    buff = []
-    for i in syns.synonyms:
-        buff.append('{0}:{1}'.format(i.literal, i.sense))
-    print('{0}  {{{1}}}  ({2})'.format(syns.wnid, ', '.join(buff), syns.definition), file=out)
+    print(syns.wnid, '  {', ', '.join(f'{i.literal}:{i.sense}' for i in syns.synonyms),
+          '}  (', syns.definition, ')', sep='', file=out)
 
 
 def write_synset_id(wn, wnid, pos, out):
@@ -293,7 +291,7 @@ def write_synset_id(wn, wnid, pos, out):
 
 def main():
     if len(sys.argv) != 2 and len(sys.argv) != 3:
-        print('Usage:\n  {0} <WN_XML_file> [<semantic_features_XML_file>]'.format(sys.argv[0]), file=sys.stderr)
+        print('Usage:\n ', sys.argv[0], '<WN_XML_file> [<semantic_features_XML_file>]', file=sys.stderr)
         sys.exit(1)
 
     # init WN
@@ -308,7 +306,7 @@ def main():
         print('Reading SemFeatures...', file=sys.stderr)
         sf = SemFeatures.SemFeaturesParserContentHandler(wn)
         stats = sf.read_xml(sys.argv[2])
-        print('{0} pairs read'.format(stats), file=sys.stderr)
+        print(stats, 'pairs read', file=sys.stderr)
     else:
         sf = None
 

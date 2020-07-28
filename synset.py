@@ -12,8 +12,7 @@ class Synonym:
         self.nucleus = n
 
     def __str__(self):
-        return 'Synonym(literal: {0}, sense: {1}, lnote: {2}, nucleus: {3})'.format(self.literal, self.sense,
-                                                                                    self.lnote, self.nucleus)
+        return f'Synonym(literal: {self.literal}, sense: {self.sense}, lnote: {self.lnote}, nucleus: {self.nucleus})'
 
 
 class Synset:
@@ -51,28 +50,22 @@ class Synset:
 
     @staticmethod
     def str_list_of_pair(name, var):
-        vect = []
-        for key, val in var:
-            vect.append('({0}, {1})'.format(key, val))
-
-        buf = ', '.join(sorted(vect))
-        return '{0}([{1}])'.format(name, buf)
+        buf = ', '.join(sorted(f'({key}, {val})' for key, val in var))
+        return f'{name}([{buf}])'
 
     def __str__(self):
-        buf = 'Synset(wnid: {0}, pos: {1}, definition: {2}, bcs: {3}, stamp: {4}, domain: {5}, nl: {6}, tnl: {7}, '. \
-            format(self.wnid, self.pos, self.definition, self.bcs, self.stamp, self.domain, self.nl, self.tnl)
-        buf += 'Usages([{0}]), '.format(', '.join(sorted(self.usages)))
-        buf += 'Snotes([{0}]), '.format(', '.join(sorted(self.snotes)))
-        buf += self.str_list_of_pair('Ilrs', self.ilrs) + ', '
-        buf += self.str_list_of_pair('Sumolinks', self.sumolinks) + ', '
-        buf += self.str_list_of_pair('Elrs', self.elrs) + ', '
-        buf += self.str_list_of_pair('Ekszlinks', self.ekszlinks) + ', '
-        buf += self.str_list_of_pair('Vframelinks', self.vframelinks) + ', '
-        buf2 = []
+        usages = ', '.join(sorted(self.usages))
+        snotes = ', '.join(sorted(self.snotes))
+        buf = [f'Synset(wnid: {self.wnid}, pos: {self.pos}, definition: {self.definition}, bcs: {self.bcs},'
+               f' stamp: {self.stamp}, domain: {self.domain}, nl: {self.nl}, tnl: {self.tnl}, Usages([{usages}]),'
+               f' Snotes([{snotes}])', self.str_list_of_pair('Ilrs', self.ilrs),
+               self.str_list_of_pair('Sumolinks', self.sumolinks), self.str_list_of_pair('Elrs', self.elrs),
+               self.str_list_of_pair('Ekszlinks', self.ekszlinks),
+               self.str_list_of_pair('Vframelinks', self.vframelinks)]
         for s in self.synonyms:
-            buf2.append(str(s))
-        buf += ', '.join(buf2) + ')'
-        return buf
+            buf.append(str(s))
+        ret = ', '.join(buf) + ')'
+        return ret
 
     # clear/reset data members
     def clear(self):
@@ -100,19 +93,23 @@ class Synset:
         """Write XML declaration, DTD reference and root opening tag to out."""
         xml_decl = '<?xml version="1.0" encoding="UTF-8"?>'
         xml_doctypedecl = '<!DOCTYPE WNXML SYSTEM "wnxml.dtd">'
-        print('{0}\n{1}\n<WNXML>'.format(xml_decl, xml_doctypedecl), file=out)
+        print(xml_decl, xml_doctypedecl, '<WNXML>', sep='\n', file=out)
 
     @staticmethod
     def write_xml_footer(out):
         """Write XML root closing tag to out."""
+
         print('</WNXML>', file=out)
       
     def write_xml(self, out):
         """Write VisDic XML representation of synset to stream"""
 
-        print('<SYNSET>{0}{1}{2}<SYNONYM>'.format(self._tagstr('ID', self.wnid),
-                                                  self._tagstr('ID3', self.wnid3) if self.wnid3 else '',
-                                                  self._tagstr('POS', self.pos)), end='', file=out)
+        if self.wnid3 != '':
+            wnid3 = self._tagstr('ID3', self.wnid3)
+        else:
+            wnid3 = ''
+        print('<SYNSET>', self._tagstr('ID', self.wnid), wnid3, self._tagstr('POS', self.pos), '<SYNONYM>',
+              sep='', end='', file=out)
 
         for i in self.synonyms:
             if i.lnote != '':
@@ -125,9 +122,8 @@ class Synset:
             else:
                 nucleus_out = ''
 
-            print('<LITERAL>{0}{1}{2}{3}</LITERAL>'.format(self._escape_pcdata_chars(i.literal),
-                                                           self._tagstr('SENSE', i.sense), lnote_out, nucleus_out),
-                  end='', file=out)
+            print('<LITERAL>', self._escape_pcdata_chars(i.literal), self._tagstr('SENSE', i.sense), lnote_out,
+                  nucleus_out, '</LITERAL>', sep='', end='', file=out)
 
         print('</SYNONYM>', end='', file=out)
 
@@ -160,7 +156,7 @@ class Synset:
 
     def _tag_helper(self, var, tag, out):
         for key, val in var:
-            print('<{0}>{1}{2}</{0}>'.format(tag, key, self._tagstr('TYPE', val)), end='', file=out)
+            print('<', tag, '>', key, self._tagstr('TYPE', val), '</', tag, '>', sep='', end='', file=out)
 
     def _tag_helper2(self, var, tag, var2, tag2, out):
         if var != '':
@@ -173,7 +169,7 @@ class Synset:
         else:
             var2_out = ''
 
-        print('{0}{1}'.format(var_out, var2_out), end='', file=out)
+        print(var_out, var2_out, sep='', end='', file=out)
 
     def _tag_helper3(self, var, tag, out):
         for i in var:
@@ -189,13 +185,11 @@ class Synset:
         """
         Return string representation: '<id> {<literal:sid>,...} (<definiton>)'
         """
-        buff = []
-        for i in self.synonyms:
-            buff.append('{0}:{1}'.format(i.literal, i.sense))
-        return '{0}  {{{1}}}  ({2})'.format(self.wnid, ', '.join(buff), self.definition)
+        synonyms = ', '.join(f'{i.literal}:{i.sense}' for i in self.synonyms)
+        return f'{self.wnid}  {{{synonyms}}}  ({self.definition})'
 
     def _tagstr(self, tag, string):
-        return '<{0}>{1}</{0}>'.format(tag, self._escape_pcdata_chars(string))
+        return f'<{tag}>{self._escape_pcdata_chars(string)}</{tag}>'
 
     @staticmethod
     def _escape_pcdata_chars(string):
