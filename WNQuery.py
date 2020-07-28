@@ -57,17 +57,24 @@ class WNQuery:
         self.m_vidx = defaultdict(list)
         self.m_aidx = defaultdict(list)
         self.m_bidx = defaultdict(list)
-        self._invRelTable = self._createInvRelTable()
+        self._invRelTable = {"hypernym": "hyponym", "holo_member": "mero_member", "holo_part": "mero_part",
+                             "holo_portion": "mero_portion", "region_domain": "region_member",
+                             "usage_domain": "usage_member", "category_domain": "category_member",
+                             "near_antonym": "near_antonym", "middle": "middle", "verb_group": "verb_group",
+                             "similar_to": "similar_to", "also_see": "also_see", "be_in_state": "be_in_state",
+                             "eng_derivative": "eng_derivative", "is_consequent_state_of": "has_consequent_state",
+                             "is_preparatory_phase_of": "has_preparatory_phase", "is_telos_of": "has_telos",
+                             "subevent": "has_subevent", "causes": "caused_by"}
 
         # open file
         try:
-            fh = open(wnxmlfilename, "r", encoding="UTF-8")
+            fh = open(wnxmlfilename, encoding="UTF-8")
         except (OSError, IOError) as e:
             raise WNQueryException("Could not open file: {0} because: {1}".format(wnxmlfilename, e))
 
         # parse input file
         for syns, lcnt in WNXMLParser.WNXMLParserContentHandler().parse(fh):
-            self._save_synset(syns, lcnt) # store next synset
+            self._save_synset(syns, lcnt)  # store next synset
 
         fh.close()
         # invert relations
@@ -105,7 +112,7 @@ class WNQuery:
         self.LeaCho_D = {}
         self.LeaCho_noconnect = - 1.0
 
-    def writeStats(self, os):
+    def write_stats(self, os):
         """
         Write statistics about number of synsets, word senses for each POS.
         :param os: the output stream to write to
@@ -169,17 +176,6 @@ class WNQuery:
         print("Inverting relations for adverbs...", file=self.log)
         self._inv_rel_pos(self.m_bdat)
 
-    def _createInvRelTable(self):
-        """create inversion table"""
-        inv = {"hypernym": "hyponym", "holo_member": "mero_member", "holo_part": "mero_part",
-               "holo_portion": "mero_portion", "region_domain": "region_member", "usage_domain": "usage_member",
-               "category_domain": "category_member", "near_antonym": "near_antonym", "middle": "middle",
-               "verb_group": "verb_group", "similar_to": "similar_to", "also_see": "also_see",
-               "be_in_state": "be_in_state", "eng_derivative": "eng_derivative",
-               "is_consequent_state_of": "has_consequent_state", "is_preparatory_phase_of": "has_preparatory_phase",
-               "is_telos_of": "has_telos", "subevent": "has_subevent", "causes": "caused_by"}
-        return inv
-
     def _inv_rel_pos(self, dat):
         # for all synsets
         for key, val in sorted(dat.items()):
@@ -242,7 +238,7 @@ class WNQuery:
         else:
             raise InvalidPOSException("Invalid POS '{0}'".format(pos))
 
-    def lookUpID(self, wnid, pos):
+    def look_up_id(self, wnid, pos):
         """
         Get synset with given id.
         :param wnid: synset id to look up
@@ -255,9 +251,9 @@ class WNQuery:
         else:
             return self.dat(pos)[wnid]
 
-    def createSynset(self, wnid, pos):
+    def create_synset(self, wnid, pos):
         """
-        In Python this is almost the same as lookUpID
+        In Python this is almost the same as look_up_id
         Create an auto_ptr to a new Synset object that holds synset data with id and pos.
         :param wnid: synset id to look up
         :param pos: POS of synset
@@ -270,9 +266,9 @@ class WNQuery:
             return synset.Synset()
         return self.dat(pos)[wnid]
 
-    def getSynset(self, wnid, pos):
+    def get_synset(self, wnid, pos):
         """
-        In Python this is almost the same as lookUpID
+        In Python this is almost the same as look_up_id
         Get constant reference to a Synset object that holds synset data with id and pos.
         :param wnid: synset id to look up
         :param pos: POS of synset
@@ -285,7 +281,7 @@ class WNQuery:
             raise WNQueryException("Synset id not found")
         return self.dat(pos)[wnid]
 
-    def lookUpLiteral(self, literal, pos):
+    def look_up_literal(self, literal, pos):
         """
         Get synsets containing given literal in given POS.
         :param literal: literal to look up (all senses)
@@ -297,18 +293,18 @@ class WNQuery:
         if literal not in self.idx(pos):
             return res
         for i in self.idx(pos)[literal]:
-            syns = self.lookUpID(i, pos)
+            syns = self.look_up_id(i, pos)
             if syns:
                 res.append(syns)
         return res
 
-    def lookUpLiteralS(self, literal, pos):
+    def look_up_literal_s(self, literal, pos):
         """Get ids of synsets containing given literal in given POS."""
         if literal not in self.idx(pos):
             return None
         return self.idx(pos)[literal]
 
-    def lookUpSense(self, literal, sensenum, pos):
+    def look_up_sense(self, literal, sensenum, pos):
         """
         Get synset containing word sense (literal with given sense number) in given POS.
         :param literal: literal to look up
@@ -317,7 +313,7 @@ class WNQuery:
         :return: the synset containing the word sense if it was found, None otherwise
         @exception InvalidPOSException for invalid POS
         """
-        res = self.lookUpLiteral(literal, pos)
+        res = self.look_up_literal(literal, pos)
         if res:
             for i in res:
                 for j in i.synonyms:
@@ -325,26 +321,26 @@ class WNQuery:
                         return i
         return None
 
-    def lookUpRelation(self, wnid, pos, relation):
+    def look_up_relation(self, wnid, pos, relation):
         """
         Get IDs of synsets reachable from synset by relation
         :param wnid: synset id to look relation from
         :param pos: POS of starting synset
         :param relation: name of relation to look up
-        :return: targetIDs ids of synsets found go here (empty if starting synset was not found,
+        :return: target_ids ids of synsets found go here (empty if starting synset was not found,
          or if no relation was found from it)
         @exception InvalidPOSException for invalid POS
         """
-        targetIDs = []
+        target_ids = []
         # look up current synset
         if wnid in self.dat(pos):  # found
             # get relation targets
             for synset_id, rel in self.dat(pos)[wnid].ilrs:
                 if rel == relation:
-                    targetIDs.append(synset_id)
-        return targetIDs
+                    target_ids.append(synset_id)
+        return target_ids
 
-    def traceRelation(self, wnid, pos, rel):
+    def trace_relation(self, wnid, pos, rel):
         """
         Do a recursive (preorder) trace from the given synset along the given relation.
         :param wnid: id of synset to start from
@@ -356,15 +352,15 @@ class WNQuery:
         """
         res = []
         # get children
-        ids = self.lookUpRelation(wnid, pos, rel)
+        ids = self.look_up_relation(wnid, pos, rel)
         # save current synset
         res.append(wnid)
         # recurse on children
         for i in ids:  # for all relations of synset
-            res.extend(self.traceRelation(i, pos, rel))  # recurse on target
+            res.extend(self.trace_relation(i, pos, rel))  # recurse on target
         return res
 
-    def traceRelationD(self, wnid, pos, rel, lev=0):
+    def trace_relation_d(self, wnid, pos, rel, lev=0):
         """
         Do a recursive (preorder) trace from the given synset along the given relation.
         :param wnid: id of synset to start from
@@ -377,33 +373,32 @@ class WNQuery:
 
         res = []
         # get children
-        ids = self.lookUpRelation(wnid, pos, rel)
+        ids = self.look_up_relation(wnid, pos, rel)
         # save current synset
         res.append((wnid, lev))
         # recurse on children
         lev += 1
         for i in ids:  # for all searched relations of synset
-            res.extend(self.traceRelationD(i, pos, rel, lev)) # recurse on target
+            res.extend(self.trace_relation_d(i, pos, rel, lev))  # recurse on target
         return res
 
-    def traceRelationOS(self, wnid, pos, rel, lev=0):
-        """Like traceRelation, but output goes to output stream with pretty formatting."""
+    def trace_relation_os(self, wnid, pos, rel, lev=0):
+        """Like trace_relation, but output goes to output stream with pretty formatting."""
 
         buf = []
         # look up current synset
         if wnid in self.dat(pos):  # found
             # print current synset
             current = ["{0}:{1}".format(i.literal, i.sense) for i in self.dat(pos)[wnid].synonyms]
-            buf.append("{0}{1}  {{{2}}}  ({3})".format("  "*lev, self.dat(pos)[wnid].wnid,
-                                            ", ".join(current),
-                                            self.dat(pos)[wnid].definition))
+            buf.append("{0}{1}  {{{2}}}  ({3})".format("  "*lev, self.dat(pos)[wnid].wnid, ", ".join(current),
+                                                       self.dat(pos)[wnid].definition))
             # recurse on children
             for synset_id, relation in self.dat(pos)[wnid].ilrs:  # for all relations of synset
                 if relation == rel:  # if it is the right type
-                    buf.extend(self.traceRelationOS(synset_id, pos, rel, lev+1))  # recurse on target
+                    buf.extend(self.trace_relation_os(synset_id, pos, rel, lev + 1))  # recurse on target
         return buf
 
-    def getMaxDepth(self, wnid, pos, relation):
+    def get_max_depth(self, wnid, pos, relation):
         """
         Calculate the longest possible path to synset from the root level using relation
         :param wnid: id of synset to start from
@@ -416,12 +411,12 @@ class WNQuery:
         """
 
         maximum = 0
-        for wnid, depth in self.traceRelationD(wnid, pos, relation):
+        for wnid, depth in self.trace_relation_d(wnid, pos, relation):
             if depth > maximum:
                 maximum = depth
         return maximum + 1
 
-    def getSubGraphSize(self, wnid, pos, relation):
+    def get_sub_graph_size(self, wnid, pos, relation):
         """
         Calculate the number of nodes in the graph starting from synset id doing a recursive trace using relation
         :param wnid: id of synset to start from
@@ -432,20 +427,20 @@ class WNQuery:
         @exception InvalidPOSException for invalid POS
         """
 
-        return len(self.trace_rel_recS(wnid, pos, relation))
+        return len(self.trace_rel_rec_s(wnid, pos, relation))
 
-    def trace_rel_recS(self, wnid, pos, rel):
+    def trace_rel_rec_s(self, wnid, pos, rel):
         res = set()
         # get children
-        ids = self.lookUpRelation(wnid, pos, rel)
+        ids = self.look_up_relation(wnid, pos, rel)
         # save current synset
         res.add(wnid)
         # recurse on children
         for i in ids:
-            res = res.union(self.trace_rel_recS(i, pos, rel))  # recurse on target
+            res = res.union(self.trace_rel_rec_s(i, pos, rel))  # recurse on target
         return res
 
-    def isIDConnectedWith(self, wnid, pos, rel, targ_ids):
+    def is_id_connected_with(self, wnid, pos, rel, targ_ids):
         """Check if synset is connected with any of the given synsets on paths defined
          by relation starting from synset."""
 
@@ -453,30 +448,30 @@ class WNQuery:
         if wnid in targ_ids:  # found it
             return wnid
         # look up / get children of current synset
-        children = self.lookUpRelation(wnid, pos, rel)
+        children = self.look_up_relation(wnid, pos, rel)
         if children:
             # recurse on children
             for i in children:
-                foundTargetID = self.isIDConnectedWith(i, pos, rel, targ_ids)  # recurse on target
-                if foundTargetID:
-                    return foundTargetID
+                found_target_id = self.is_id_connected_with(i, pos, rel, targ_ids)  # recurse on target
+                if found_target_id:
+                    return found_target_id
         return None
 
-    def isLiteralConnectedWith(self, literal, pos, relation, targ_ids):
+    def is_literal_connected_with(self, literal, pos, relation, targ_ids):
         """Check if any sense of literal in POS is connected with any of the specified synsets on paths defined
          by relation starting from that sense."""
 
-        for i in self.lookUpLiteral(literal, pos):
-            foundTargetID = self.isIDConnectedWith(i.wnid, pos, relation, targ_ids)
-            if foundTargetID:
-                return i.wnid, foundTargetID
+        for i in self.look_up_literal(literal, pos):
+            found_target_id = self.is_id_connected_with(i.wnid, pos, relation, targ_ids)
+            if found_target_id:
+                return i.wnid, found_target_id
         return None, None
 
-    def isLiteralCompatibleWithSynset(self, literal, pos, wnid, hyponyms):
+    def is_literal_compatible_with_synset(self, literal, pos, wnid, hyponyms):
         """Check if literal is in synset, or, if hyponyms is true, is in one of synset's hyponyms (recursive)"""
 
         # check if synset contains literal
-        syns = self.lookUpID(wnid, pos)
+        syns = self.look_up_id(wnid, pos)
         if syns:
             for i in syns.synonyms:
                 if i.literal == literal:
@@ -484,11 +479,11 @@ class WNQuery:
             # if allowed, recurse on hyponyms
             if hyponyms:
                 for synset_id, rel in syns.ilrs:
-                    if rel == "hyponym" and self.isLiteralCompatibleWithSynset(literal, pos, synset_id, True):
+                    if rel == "hyponym" and self.is_literal_compatible_with_synset(literal, pos, synset_id, True):
                         return True
         return False
 
-    def areSynonyms(self, literal1, literal2, pos):
+    def are_synonyms(self, literal1, literal2, pos):
         """
         Determine if two literals are synonyms in a PoS, also return id of a synset that contains both.
         :param literal1: first word to be checked
@@ -500,20 +495,20 @@ class WNQuery:
         """
 
         # get senses of input word1, for each sense, check if it contains word2
-        for i in self.lookUpLiteral(literal1, pos):
-            if self.isLiteralCompatibleWithSynset(literal2, pos, i.wnid, False):
+        for i in self.look_up_literal(literal1, pos):
+            if self.is_literal_compatible_with_synset(literal2, pos, i.wnid, False):
                 return i.wnid
         # no common synset
         return None
 
-    def similarityLeacockChodorow(self, literal1, literal2, pos, relation, addArtificialTop):
+    def similarity_leacock_chodorow(self, literal1, literal2, pos, relation, add_artificial_top):
         """
         Calculate Leacock-Chodorow similarity between two words using WN.
         :param literal1: the two input words
         :param literal2: the two input words
         :param pos: PoS of the words (n,v,a,b)
         :param relation: the name of the relation to use for finding connecting paths
-        :param addArtificialTop: if true, add an artificial top (root) node to ends of relation paths
+        :param add_artificial_top: if true, add an artificial top (root) node to ends of relation paths
          so that the whole WN graph will be interconnected. If false, there can literals with zero connections
           (empty results map, see below).
         :return: the results: for every pair of synset ids of all the senses of the input words, the similarity score,
@@ -531,28 +526,28 @@ class WNQuery:
          if s1 = s2, length_of_shortest_path = 1,
          if s1 is hypernym of s2 (or vice versa), length_of_shortest_path = 2,
          if s1 and s2 are sister nodes (have a common hypernym), length_of_shortest_path = 3, etc.
-         Note, when addArtificialTop is true, the formula returns a sim. score of 1.12494 (for path length 3)
+         Note, when add_artificial_top is true, the formula returns a sim. score of 1.12494 (for path length 3)
          for invalid relation types (since since the path always contains the starting node,
           plus the artificial root node).
         """
 
         # get senses of input words
-        results = dict()
+        results = {}
         # for each synset pair, calc similarity & put into results
-        for i in self.lookUpLiteral(literal1, pos):
-            for j in self.lookUpLiteral(literal2, pos):
-                results[self.simLeaCho(i.wnid, j.wnid, pos, relation, addArtificialTop)] = (i.wnid, j.wnid)
+        for i in self.look_up_literal(literal1, pos):
+            for j in self.look_up_literal(literal2, pos):
+                results[self.sim_lea_cho(i.wnid, j.wnid, pos, relation, add_artificial_top)] = (i.wnid, j.wnid)
         return results
 
-    def simLeaCho(self, wnid1, wnid2, pos, relation, addArtificialTop):
-        d = self.getLeaChoD(pos, relation)
+    def sim_lea_cho(self, wnid1, wnid2, pos, relation, add_artificial_top):
+        d = self.get_lea_cho_d(pos, relation)
         # get nodes reachable from wnid1, wnid2 by relation + their distances (starting with wnid1/2 with dist. 1)
         # find common node (O(n*m))
         ci_r1 = None
         ci_r2 = None
         path_length = 2*d
-        for key1, val1 in self.getReach(wnid1, pos, relation, addArtificialTop):
-            for key2, val2 in self.getReach(wnid2, pos, relation, addArtificialTop):
+        for key1, val1 in self.get_reach(wnid1, pos, relation, add_artificial_top):
+            for key2, val2 in self.get_reach(wnid2, pos, relation, add_artificial_top):
                 if key1 == key2:
                     if val1 + val2 < path_length:
                         ci_r1 = (key1, val1)
@@ -567,13 +562,13 @@ class WNQuery:
         else:  # when no connecting path exists between synsets
             return self.LeaCho_noconnect
 
-    def getLeaChoD(self, pos, relation):
+    def get_lea_cho_d(self, pos, relation):
         if (pos, relation) not in self.LeaCho_D:
-            self.LeaCho_D[(pos, relation)] = max(self.getMaxDepth(wnid, pos, relation) for wnid in self.m_ndat)
+            self.LeaCho_D[(pos, relation)] = max(self.get_max_depth(wnid, pos, relation) for wnid in self.m_ndat)
 
         return self.LeaCho_D[(pos, relation)]
 
-    def getReach(self, wnid, pos, rel, addTop, dist=1):
+    def get_reach(self, wnid, pos, rel, add_top, dist=1):
         res = []
         # look up current synset
         if wnid in self.dat(pos):  # found
@@ -585,8 +580,8 @@ class WNQuery:
             for synset_id, relation in self.dat(pos)[wnid].ilrs:  # for all relations of synset
                 if relation == rel:  # if it is the right type
                     haschildren = True
-                    res.extend(self.getReach(synset_id, pos, rel, addTop, dist))  # recurse on child
+                    res.extend(self.get_reach(synset_id, pos, rel, add_top, dist))  # recurse on child
             # if it has no "children" of this type (is terminal leaf or root level), add artificial "root" if requested
-            if not haschildren and addTop:
+            if not haschildren and add_top:
                 res.append(("#TOP#", dist))
         return res

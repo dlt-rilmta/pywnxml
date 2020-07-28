@@ -5,8 +5,8 @@ import re
 
 
 class Synonym:
-    def __init__(self, l, s, o="", n=""):
-        self.literal = l
+    def __init__(self, lit, s, o="", n=""):
+        self.literal = lit
         self.sense = s
         self.lnote = o
         self.nucleus = n
@@ -29,7 +29,7 @@ class Synset:
         self.tnl = ""
 
         self.usages = []  # List of strings
-        self.snotes = [] # List of strings
+        self.snotes = []  # List of strings
 
         # Type for vector of "pointer", which are pairs whose 1st component it the link target (id),
         # 2nd component is the link type
@@ -77,7 +77,7 @@ class Synset:
     # clear/reset data members
     def clear(self):
         self.wnid = ""
-        self.wnid3 = "" # PWN3.0 synset id
+        self.wnid3 = ""  # PWN3.0 synset id
         self.pos = ""
         self.definition = ""
         self.bcs = ""
@@ -96,18 +96,18 @@ class Synset:
         self.synonyms = []
 
     @staticmethod
-    def writeXMLHeader(out):
+    def write_xml_header(out):
         """Write XML declaration, DTD reference and root opening tag to out."""
-        XMLdecl = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-        XMLdoctypedecl = "<!DOCTYPE WNXML SYSTEM \"wnxml.dtd\">"
-        print("{0}\n{1}\n<WNXML>".format(XMLdecl, XMLdoctypedecl), file=out)
+        xml_decl = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+        xml_doctypedecl = "<!DOCTYPE WNXML SYSTEM \"wnxml.dtd\">"
+        print("{0}\n{1}\n<WNXML>".format(xml_decl, xml_doctypedecl), file=out)
 
     @staticmethod
-    def writeXMLFooter(out):
+    def write_xml_footer(out):
         """Write XML root closing tag to out."""
         print("</WNXML>", file=out)      
       
-    def writeXML(self, out):
+    def write_xml(self, out):
         """Write VisDic XML representation of synset to stream"""
 
         print("<SYNSET>{0}{1}{2}<SYNONYM>".format(self._tagstr("ID", self.wnid),
@@ -125,8 +125,9 @@ class Synset:
             else:
                 nucleus_out = ""
 
-            print("<LITERAL>{0}{1}{2}{3}</LITERAL>".format(self._EscPC(i.literal), self._tagstr("SENSE", i.sense),
-                                                           lnote_out, nucleus_out), end="", file=out)
+            print("<LITERAL>{0}{1}{2}{3}</LITERAL>".format(self._escape_pcdata_chars(i.literal),
+                                                           self._tagstr("SENSE", i.sense), lnote_out, nucleus_out),
+                  end="", file=out)
 
         print("</SYNONYM>", end="", file=out)
 
@@ -157,34 +158,34 @@ class Synset:
 
         print("</SYNSET>", end="", file=out)
 
-    def _tag_helper(self, var, TAG, out):
+    def _tag_helper(self, var, tag, out):
         for key, val in var:
-            print("<{0}>{1}{2}</{0}>".format(TAG, key, self._tagstr("TYPE", val)), end="", file=out)
+            print("<{0}>{1}{2}</{0}>".format(tag, key, self._tagstr("TYPE", val)), end="", file=out)
 
-    def _tag_helper2(self, var, TAG, var2, TAG2, out):
+    def _tag_helper2(self, var, tag, var2, tag2, out):
         if var != "":
-            var_out = self._tagstr(TAG, var)
+            var_out = self._tagstr(tag, var)
         else:
             var_out = ""
 
         if var2 != "":
-            var2_out = self._tagstr(TAG2, var2)
+            var2_out = self._tagstr(tag2, var2)
         else:
             var2_out = ""
 
         print("{0}{1}".format(var_out, var2_out), end="", file=out)
 
-    def _tag_helper3(self, var, TAG, out):
+    def _tag_helper3(self, var, tag, out):
         for i in var:
-            print(self._tagstr(TAG, i), end="", file=out)
+            print(self._tagstr(tag, i), end="", file=out)
 
-    def writeStr(self, out):
+    def write_str(self, out):
         """
         Write string representation (see below) to stream
         """
-        print(self.toString(), end="", file=out)
+        print(self.to_string(), end="", file=out)
 
-    def toString(self):
+    def to_string(self):
         """
         Return string representation: "<id> {<literal:sid>,...} (<definiton>)"
         """
@@ -194,8 +195,9 @@ class Synset:
         return "{0}  {{{1}}}  ({2})".format(self.wnid, ", ".join(buff), self.definition)
 
     def _tagstr(self, tag, string):
-        return "<{0}>{1}</{0}>".format(tag, self._EscPC(string))
+        return "<{0}>{1}</{0}>".format(tag, self._escape_pcdata_chars(string))
 
-    def _EscPC(self, string):
+    @staticmethod
+    def _escape_pcdata_chars(string):
         return re.sub("&(?![a-zA-Z0-9_#-]+;)", "&amp;", string).replace("<", "&lt;").replace(">", "&gt;").\
             replace("'", "&apos;").replace("\"", "&quot;")

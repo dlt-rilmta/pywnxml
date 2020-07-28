@@ -2,7 +2,9 @@
 # -*- coding: utf-8, vim: expandtab:ts=4 -*-
 
 import sys
-import xml.sax
+from xml.sax.handler import ErrorHandler, ContentHandler
+from xml.sax.xmlreader import Locator
+from xml.sax import make_parser
 
 import synset
 
@@ -17,9 +19,8 @@ class WNXMLParserException(Exception):
         return repr(self.message)
 
 
-class WNXMLParserErrorHandler(xml.sax.ErrorHandler):
-    @staticmethod
-    def warning(msg):
+class WNXMLParserErrorHandler(ErrorHandler):
+    def warning(self, msg):
         print("SAX parser warning: {0}".format(msg), file=sys.stderr)
 
     def error(self, msg):
@@ -29,9 +30,11 @@ class WNXMLParserErrorHandler(xml.sax.ErrorHandler):
         raise WNXMLParserException("SAX parser fatal error: {0}".format(msg))
 
 
-class WNXMLParserContentHandler(xml.sax.ContentHandler):
+class WNXMLParserContentHandler(ContentHandler):
     def __init__(self):
-        xml.sax.ContentHandler.__init__(self)
+        ContentHandler.__init__(self)
+        self._locator = Locator()  # Dummy setDocumentLocator does the same!
+        self.setDocumentLocator(self._locator)
         self.m_lcnt = 0                # input line number
         self.m_ppath = []              # contains the XML path to the current node (names of the ancestors)
         self.m_done = -1               # -1: not started synset yet, 0: inside synset, 1: done with synset
@@ -331,12 +334,12 @@ class WNXMLParserContentHandler(xml.sax.ContentHandler):
         # Source: http://stackoverflow.com/a/12263340
         """
         # Make parser
-        xmlReader = xml.sax.make_parser()
+        xml_reader = make_parser()
         # set self as ContentHandler
-        xmlReader.setContentHandler(self)
+        xml_reader.setContentHandler(self)
         # Set ErrorHandler
-        xmlReader.setErrorHandler(WNXMLParserErrorHandler())
+        xml_reader.setErrorHandler(WNXMLParserErrorHandler())
         # Do the actual parsing
-        xmlReader.parse(input_file)
+        xml_reader.parse(input_file)
         # Return the gathered result
         return self.m_syns_list

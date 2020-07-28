@@ -2,7 +2,9 @@
 # -*- coding: utf-8, vim: expandtab:ts=4 -*-
 
 import sys
-import xml.sax
+from xml.sax.handler import ErrorHandler, ContentHandler
+from xml.sax.xmlreader import Locator
+from xml.sax import make_parser
 from collections import defaultdict
 
 DEBUG = False
@@ -16,9 +18,8 @@ class SemFeaturesParserException(Exception):
         return repr(self.message)
 
 
-class SemFeaturesParserErrorHandler(xml.sax.ErrorHandler):
-    @staticmethod
-    def warning(msg):
+class SemFeaturesParserErrorHandler(ErrorHandler):
+    def warning(self, msg):
         print("SAX parser warning: {0}".format(msg), file=sys.stderr)
 
     def error(self, msg):
@@ -28,7 +29,7 @@ class SemFeaturesParserErrorHandler(xml.sax.ErrorHandler):
         raise SemFeaturesParserException("SAX parser fatal error: {0}".format(msg))
 
 
-class SemFeaturesParserContentHandler(xml.sax.ContentHandler):
+class SemFeaturesParserContentHandler(ContentHandler):
     def __init__(self, wn):
         """
         Constructor.
@@ -36,7 +37,9 @@ class SemFeaturesParserContentHandler(xml.sax.ContentHandler):
             @exception SemFeaturesException on file parsing errors
         """
 
-        xml.sax.ContentHandler.__init__(self)
+        ContentHandler.__init__(self)
+        self._locator = Locator()  # Dummy setDocumentLocator does the same!
+        self.setDocumentLocator(self._locator)
         self.m_lcnt = 0                     # input line number
         self.m_ppath = []                   # contains the XML path to the current node (names of the ancestors)
         self.m_currfeat = ""                # feature currently being processed
@@ -71,7 +74,7 @@ class SemFeaturesParserContentHandler(xml.sax.ContentHandler):
 
         self.m_ppath.pop()
 
-    def lookUpFeature(self, feature):
+    def look_up_feature(self, feature):
         """
         Get synset ids mapped to a semantic feature.
         :param feature: name of semantic feature to look up
@@ -83,27 +86,27 @@ class SemFeaturesParserContentHandler(xml.sax.ContentHandler):
                 res.add(wnid)
         return res
 
-    def isLiteralCompatibleWithFeature(self, literal, pos, feature):
+    def is_literal_compatible_with_feature(self, literal, pos, feature):
         """
         Check whether a literal with given POS is compatible with the given semantic feature.
         Check if any sense of literal in WN is a (distant) hyponym of any of the synset ids corresponding
          to the semantic feature.
         :param literal: the literal to check
-    :param pos: part-of-speech of literal (allowed values: n, v, a, b)
-    :param feature: feature semantic feature to check
-    :return: res_sense_ssid if compatibility was found, the id of the synset containing the sense of the literal
+        :param pos: part-of-speech of literal (allowed values: n, v, a, b)
+        :param feature: feature semantic feature to check
+        :return: res_sense_ssid if compatibility was found, the id of the synset containing the sense of the literal
                             that was compatible with the feature
              res_feature_ssid if compatibility was found, the synset id of the interpretation of the feature
                             that was found to be compatible with the literal
              true if compatibility was found, false otherwise (no sense of literal was compatible with any of ids
                             pertaining to feature, or literal or feature was not found)
         """
-        feat_ids = self.lookUpFeature(feature)
+        feat_ids = self.look_up_feature(feature)
         if feat_ids:
-            return self.m_wn.isLiteralConnectedWith(literal, pos, "hypernym", feat_ids)
+            return self.m_wn.is_literal_connected_with(literal, pos, "hypernym", feat_ids)
         return None, None
 
-    def readXML(self, semfeaturesfilename):
+    def read_xml(self, semfeaturesfilename):
         """
         Read mapping (semantic features to synset ids) from XML file.
         :param semfeaturesfilename: name of XML file
@@ -112,19 +115,19 @@ class SemFeaturesParserContentHandler(xml.sax.ContentHandler):
 
         # open file
         try:
-            fh = open(semfeaturesfilename, "r", encoding="UTF-8")
+            fh = open(semfeaturesfilename, encoding="UTF-8")
         except (OSError, IOError) as e:
             raise SemFeaturesParserException("Could not open file: {0} because: {1}".format(semfeaturesfilename, e))
         # Magic lies here
         # Source: http://stackoverflow.com/a/12263340
         # Make parser
-        xmlReader = xml.sax.make_parser()
+        xml_reader = make_parser()
         # set self as ContentHandler
-        xmlReader.setContentHandler(self)
+        xml_reader.setContentHandler(self)
         # Set ErrorHandler
-        xmlReader.setErrorHandler(SemFeaturesParserErrorHandler())
+        xml_reader.setErrorHandler(SemFeaturesParserErrorHandler())
         # Do the actual parsing
-        xmlReader.parse(fh)
+        xml_reader.parse(fh)
         fh.close()
         # Close defaultdict for safety
         self.m_featmap.default_factory = None
@@ -133,4 +136,3 @@ class SemFeaturesParserContentHandler(xml.sax.ContentHandler):
         for it in self.m_featmap.values():
             m_featmap_len += len(it)
         return m_featmap_len
-

@@ -20,22 +20,33 @@ def process_query(wn, sf, query, out):
                ".i   <id> <pos>                                   look up synset id in given POS (n,v,a,b)",
                ".l   <literal>                                    look up all synsets containing literal in all POS",
                ".l   <literal> <pos>                              look up all synsets containing literal in given POS",
-               ".l   <literal> <sensenum> <pos>                   look up synset containing literal with given sense number in given POS",
+               ".l   <literal> <sensenum> <pos>                   look up synset containing literal with given sense"
+               " number in given POS",
                ".rl  <literal> <pos>                              list known relations of all senses of literal in POS",
-               ".rl  <literal> <pos> <relation>                   look up relation (hypernym, hyponym) of all senses of literal with id and POS, list target ids",
-               ".ri  <id> <pos> <relation>                        look up relation of synset with id and POS, list target ids",
+               ".rl  <literal> <pos> <relation>                   look up relation (hypernym, hyponym) of all senses"
+               " of literal with id and POS, list target ids",
+               ".ri  <id> <pos> <relation>                        look up relation of synset with id and POS,"
+               " list target ids",
                ".ti  <id> <pos> <relation>                        trace relations of synset with id and POS",
                ".tl  <literal> <pos> <relation>                   trace relations of all senses of literal in POS",
-               ".ci  <id> <pos> <relation> <id1> [<id2>...]       check if any of id1,id2,... is reachable from id by following relation",
-               ".cl  <literal> <pos> <relation> <id1> [<id2>...]  check if any of id1,id2,... is reachable from any sense of literal by following relation",
-               ".cli <literal> <pos> <id> [hyponyms]              check if synset contains literal, or if \"hyponyms\" is added, any of its hyponyms",
-               ".slc <literal1> <literal2> <pos> <relation> [top] calculate Leacock-Chodorow similarity for all senses of literals in pos using relation",
-               "                                                  if 'top' is added, an artificial root node is added to relation paths, making WN interconnected.",
-               ".md  <id> <pos> <relation>                        calculate the longest possible path to synset with id and POS from the root level using relation",
-               ".sg  <id> <pos> <relation>                        calculate the number of nodes in the graph starting from synset id doing a recursive trace using relation"]
+               ".ci  <id> <pos> <relation> <id1> [<id2>...]       check if any of id1,id2,... is reachable from id by"
+               " following relation",
+               ".cl  <literal> <pos> <relation> <id1> [<id2>...]  check if any of id1,id2,... is reachable"
+               " from any sense of literal by following relation",
+               ".cli <literal> <pos> <id> [hyponyms]              check if synset contains literal, or"
+               " if \"hyponyms\" is added, any of its hyponyms",
+               ".slc <literal1> <literal2> <pos> <relation> [top] calculate Leacock-Chodorow similarity for all senses"
+               " of literals in pos using relation",
+               "                                                  if 'top' is added, an artificial root node is added"
+               " to relation paths, making WN interconnected.",
+               ".md  <id> <pos> <relation>                        calculate the longest possible path to synset with id"
+               " and POS from the root level using relation",
+               ".sg  <id> <pos> <relation>                        calculate the number of nodes in the graph starting"
+               " from synset id doing a recursive trace using relation"]
         if sf:
             buf.append(".s  <feature>                                     look up semantic feature")
-            buf.append(".sc <literal> <pos> <feature>                    check whether any sense of literal is compatible with semantic feature")
+            buf.append(".sc <literal> <pos> <feature>                    check whether any sense of literal"
+                       " is compatible with semantic feature")
         print("\n".join(buf), end="\n\n", file=out)
         return
 
@@ -43,7 +54,7 @@ def process_query(wn, sf, query, out):
         if len(t) != 3:
             print("Incorrect format for command {0}\n".format(t[0]), file=out)
             return
-        syns = wn.lookUpID(t[1], t[2])
+        syns = wn.look_up_id(t[1], t[2])
         if not syns:
             print("Synset not found\n", file=out)
         else:
@@ -57,9 +68,9 @@ def process_query(wn, sf, query, out):
             return
 
         if len(t) == 2:  # .l <literal>
-            # For n, v, a, b elements we run the lookUpLiteral function,
+            # For n, v, a, b elements we run the look_up_literal function,
             # then we flatten the resulting list of returned lists
-            res = [item for i in ("n", "v", "a", "b") for item in wn.lookUpLiteral(t[1], i)]
+            res = [item for i in ("n", "v", "a", "b") for item in wn.look_up_literal(t[1], i)]
 
             if not res:
                 print("Literal not found\n", file=out)
@@ -69,7 +80,7 @@ def process_query(wn, sf, query, out):
                 print("", file=out)
 
         if len(t) == 3:  # .l <literal> <pos>
-            res = wn.lookUpLiteral(t[1], t[2])
+            res = wn.look_up_literal(t[1], t[2])
             if not res:
                 print("Literal not found\n", file=out)
             else:
@@ -78,7 +89,7 @@ def process_query(wn, sf, query, out):
                 print("", file=out)
 
         if len(t) == 4:  # .l <literal> <sensenum> <pos>
-            syns = wn.lookUpSense(t[1], int(t[2]), t[3])
+            syns = wn.look_up_sense(t[1], int(t[2]), t[3])
             if not syns:
                 print("Word sense not found\n", file=out)
             else:
@@ -92,7 +103,7 @@ def process_query(wn, sf, query, out):
             return
 
         if len(t) == 3:  # .rl <literal> <pos>
-            ss = wn.lookUpLiteral(t[1], t[2])
+            ss = wn.look_up_literal(t[1], t[2])
             if not ss:
                 print("Literal not found", file=out)
             else:
@@ -106,13 +117,13 @@ def process_query(wn, sf, query, out):
                     print("", file=out)
 
         if len(t) == 4:  # .rl <literal> <pos> <relation>
-            ss = wn.lookUpLiteral(t[1], t[2])
+            ss = wn.look_up_literal(t[1], t[2])
             if not ss:
                 print("Literal not found", file=out)
             else:
                 for j in ss:
                     write_synset_id(wn, j.wnid, t[2], out)
-                    ids = wn.lookUpRelation(j.wnid, t[2], t[3])
+                    ids = wn.look_up_relation(j.wnid, t[2], t[3])
                     if ids:
                         for i in ids:
                             print("  ", end="", file=out)
@@ -125,7 +136,7 @@ def process_query(wn, sf, query, out):
             print("Incorrect format for command {0}\n".format(t[0]), file=out)
             return
 
-        ids = wn.lookUpRelation(t[1], t[2], t[3])
+        ids = wn.look_up_relation(t[1], t[2], t[3])
         if not ids:
             print("Synset not found or has no relations of the specified type", file=out)
         else:
@@ -138,7 +149,7 @@ def process_query(wn, sf, query, out):
             print("Incorrect format for command {0}\n".format(t[0]), file=out)
             return
 
-        oss = wn.traceRelationOS(t[1], t[2], t[3])
+        oss = wn.trace_relation_os(t[1], t[2], t[3])
         if not oss:
             print("Synset not found\n", file=out)
         else:
@@ -150,12 +161,12 @@ def process_query(wn, sf, query, out):
             print("Incorrect format for command {0}\n".format(t[0]), file=out)
             return
 
-        senses = wn.lookUpLiteral(t[1], t[2])
+        senses = wn.look_up_literal(t[1], t[2])
         if not senses:
             print("Literal not found\n", file=out)
         else:
             for i in senses:
-                oss = wn.traceRelationOS(i.wnid, t[2], t[3])
+                oss = wn.trace_relation_os(i.wnid, t[2], t[3])
                 if not oss:
                     print("Synset not found\n", file=out)
                 else:
@@ -167,7 +178,7 @@ def process_query(wn, sf, query, out):
             print("Incorrect format for command {0}\n".format(t[0]), file=out)
             return
 
-        foundtarg = wn.isIDConnectedWith(t[1], t[2], t[3], set(t[4:]))
+        foundtarg = wn.is_id_connected_with(t[1], t[2], t[3], set(t[4:]))
         if foundtarg:
             print("Connection found to {0}".format(foundtarg), file=out)
         else:
@@ -179,7 +190,7 @@ def process_query(wn, sf, query, out):
             print("Incorrect format for command {0}\n".format(t[0]), file=out)
             return
 
-        foundid, foundtarg = wn.isLiteralConnectedWith(t[1], t[2], t[3], set(t[4:]))
+        foundid, foundtarg = wn.is_literal_connected_with(t[1], t[2], t[3], set(t[4:]))
         if foundid and foundtarg:
             print("Connection found:\nSense of literal: {0}\nTarget id: {1}".format(foundid, foundtarg), file=out)
         else:
@@ -195,7 +206,7 @@ def process_query(wn, sf, query, out):
             print("Incorrect format for command {0}\n".format(t[0]), file=out)
             return
 
-        ids = sorted(sf.lookUpFeature(t[1]))
+        ids = sorted(sf.look_up_feature(t[1]))
         if ids:
             print("{0} synset(s) found:\n{1}".format(len(ids), "\n".join(ids)), file=out)
         else:
@@ -211,7 +222,7 @@ def process_query(wn, sf, query, out):
             print("Incorrect format for command {0}\n".format(t[0]), file=out)
             return
 
-        foundid, foundtargid = sf.isLiteralCompatibleWithFeature(t[1], t[2], t[3])
+        foundid, foundtargid = sf.is_literal_compatible_with_feature(t[1], t[2], t[3])
         if foundid and foundtargid:
             print("Compatibility found:\nSense of literal: ", end="", file=out)
             write_synset_id(wn, foundid, t[2], out)
@@ -228,7 +239,7 @@ def process_query(wn, sf, query, out):
             print("Incorrect format for command {0}\n".format(t[0]), file=out)
             return
 
-        if wn.isLiteralCompatibleWithSynset(t[1], t[2], t[3], hyps):
+        if wn.is_literal_compatible_with_synset(t[1], t[2], t[3], hyps):
             print("Compatible", file=out)
         else:
             print("Not compatible", file=out)
@@ -242,7 +253,7 @@ def process_query(wn, sf, query, out):
             return
 
         print("Results:", file=out)
-        for key, (wnid1, wnid2) in sorted(wn.similarityLeacockChodorow(t[1], t[2], t[3], t[4], addtop).items(),
+        for key, (wnid1, wnid2) in sorted(wn.similarity_leacock_chodorow(t[1], t[2], t[3], t[4], addtop).items(),
                                           reverse=True):  # tSims
             print("  {0}\t{1}  {2}".format(key, wnid1, wnid2), file=out)
         return
@@ -252,7 +263,7 @@ def process_query(wn, sf, query, out):
             print("Incorrect format for command {0}\n".format(t[0]), file=out)
             return
 
-        print(wn.getMaxDepth(t[1], t[2], t[3]), file=out)
+        print(wn.get_max_depth(t[1], t[2], t[3]), file=out)
         return
 
     if t[0] == ".sg":   # .sg
@@ -260,14 +271,14 @@ def process_query(wn, sf, query, out):
             print("Incorrect format for command {0}\n".format(t[0]), file=out)
             return
 
-        print(wn.getSubGraphSize(t[1], t[2], t[3]), file=out)
+        print(wn.get_sub_graph_size(t[1], t[2], t[3]), file=out)
         return
 
     print("Unknown command\n", file=out)
 
 
 def write_synset(syns, out):
-    """This is exact same function as Synset.writeStr(out)"""
+    """This is exact same function as Synset.write_str(out)"""
     buff = []
     for i in syns.synonyms:
         buff.append("{0}:{1}".format(i.literal, i.sense))
@@ -275,7 +286,7 @@ def write_synset(syns, out):
 
 
 def write_synset_id(wn, wnid, pos, out):
-    syns = wn.lookUpID(wnid, pos)
+    syns = wn.look_up_id(wnid, pos)
     if syns:
         write_synset(syns, out)
 
@@ -290,13 +301,13 @@ def main():
     # Logging to devnull for all OS
     # Source: http://stackoverflow.com/a/2929946
     wn = WNQuery.WNQuery(sys.argv[1], open(os.devnull, "w"))
-    wn.writeStats(sys.stderr)
+    wn.write_stats(sys.stderr)
 
     # init SemFeatures (if appl.)
     if len(sys.argv) == 3:
         print("Reading SemFeatures...", file=sys.stderr)
         sf = SemFeatures.SemFeaturesParserContentHandler(wn)
-        stats = sf.readXML(sys.argv[2])
+        stats = sf.read_xml(sys.argv[2])
         print("{0} pairs read".format(stats), file=sys.stderr)
     else:
         sf = None
