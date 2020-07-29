@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8, vim: expandtab:ts=4 -*-
 
-import re
-PCDATA_RE = re.compile('&(?![a-zA-Z0-9_#-]+;)')
+from xml.sax.saxutils import escape
+QUOTES = {'\'': '&apos;', '"': '&quot;'}
 
 
 class Synonym:
@@ -78,7 +78,7 @@ class Synset:
         self.ilrs = []
         self.sumolinks = []
         self.elrs = []
-        self.elrs3 = []         # (target id, rel-type) pairs of external relation pointers, to PWN3.0
+        self.elrs3 = []  # (target id, rel-type) pairs of external relation pointers, to PWN3.0
         self.ekszlinks = []
         self.vframelinks = []
         self.synonyms = []
@@ -100,72 +100,44 @@ class Synset:
     def write_xml(self, out):
         """Write VisDic XML representation of synset to stream"""
 
-        if self.wnid3 != '':
-            wnid3 = self._tagstr('ID3', self.wnid3)
-        else:
-            wnid3 = ''
-        print('<SYNSET>', self._tagstr('ID', self.wnid), wnid3, self._tagstr('POS', self.pos), '<SYNONYM>',
-              sep='', end='', file=out)
+        print('<SYNSET>', self._tagstr('ID', self.wnid), self._tagstr('ID3', self.wnid3, opt=True),
+              self._tagstr('POS', self.pos), '<SYNONYM>', sep='', end='', file=out)
 
         for i in self.synonyms:
-            if i.lnote != '':
-                lnote_out = self._tagstr('LNOTE', i.lnote)
-            else:
-                lnote_out = ''
-
-            if i.nucleus != '':
-                nucleus_out = self._tagstr('NUCLEUS', i.nucleus)
-            else:
-                nucleus_out = ''
-
-            print('<LITERAL>', self._escape_pcdata_chars(i.literal), self._tagstr('SENSE', i.sense), lnote_out,
-                  nucleus_out, '</LITERAL>', sep='', end='', file=out)
-
+            print('<LITERAL>', escape(i.literal, entities=QUOTES), self._tagstr('SENSE', i.sense),
+                  self._tagstr('LNOTE', i.lnote, opt=True), self._tagstr('NUCLEUS', i.nucleus, opt=True), '</LITERAL>',
+                  sep='', end='', file=out)
         print('</SYNONYM>', end='', file=out)
 
         # uniq internal relations (remove inverted relations if needed?)
         self.ilrs = list(sorted(set(self.ilrs)))
 
-        self._tag_helper(self.ilrs, 'ILR', out)
+        for key, val in self.ilrs:
+            print('<ILR>', key, self._tagstr('TYPE', val), '</ILR>', sep='', end='', file=out)
 
-        self._tag_helper2(self.definition, 'DEF', self.bcs, 'BCS', out)
+        print(self._tagstr('DEF', self.definition, opt=True), self._tagstr('BCS', self.bcs, opt=True),
+              sep='', end='', file=out)
 
-        self._tag_helper3(self.usages, 'USAGE', out)
+        for i1 in self.usages:
+            print(self._tagstr('USAGE', i1), end='', file=out)
 
-        self._tag_helper3(self.snotes, 'SNOTE', out)
+        for i2 in self.snotes:
+            print(self._tagstr('SNOTE', i2), end='', file=out)
 
-        self._tag_helper2(self.stamp, 'STAMP', self.domain, 'DOMAIN', out)
+        print(self._tagstr('STAMP', self.stamp, opt=True), self._tagstr('DOMAIN', self.domain, opt=True),
+              sep='', end='', file=out)
 
-        self._tag_helper(self.sumolinks, 'SUMO', out)
+        for key1, val1 in self.sumolinks:
+            print('<SUMO>', key1, self._tagstr('TYPE', val1), '</SUMO>', sep='', end='', file=out)
 
-        self._tag_helper2(self.nl, 'NL', self.tnl, 'TNL', out)
+        print(self._tagstr('NL', self.nl, opt=True), self._tagstr('TNL', self.tnl, opt=True), sep='', end='', file=out)
 
         for var, tag in ((self.elrs, 'ELR'), (self.elrs3, 'ELR3'), (self.ekszlinks, 'EKSZ'),
                          (self.vframelinks, 'VFRAME')):
-            self._tag_helper(var, tag, out)
+            for key2, val2 in var:
+                print('<', tag, '>', key2, self._tagstr('TYPE', val2), '</', tag, '>', sep='', end='', file=out)
 
         print('</SYNSET>', end='', file=out)
-
-    def _tag_helper(self, var, tag, out):
-        for key, val in var:
-            print('<', tag, '>', key, self._tagstr('TYPE', val), '</', tag, '>', sep='', end='', file=out)
-
-    def _tag_helper2(self, var, tag, var2, tag2, out):
-        if var != '':
-            var_out = self._tagstr(tag, var)
-        else:
-            var_out = ''
-
-        if var2 != '':
-            var2_out = self._tagstr(tag2, var2)
-        else:
-            var2_out = ''
-
-        print(var_out, var2_out, sep='', end='', file=out)
-
-    def _tag_helper3(self, var, tag, out):
-        for i in var:
-            print(self._tagstr(tag, i), end='', file=out)
 
     def write_str(self, out):
         """
@@ -174,11 +146,8 @@ class Synset:
         print(self.wnid, '  {', ', '.join(f'{i.literal}:{i.sense}' for i in self.synonyms),
               '}  (', self.definition, ')', sep='', file=out)
 
-    def _tagstr(self, tag, string):
-        # TODO: Some tags are optional, some are mandatory! They should be treated here in an unified manner...
-        return f'<{tag}>{self._escape_pcdata_chars(string)}</{tag}>'
-
     @staticmethod
-    def _escape_pcdata_chars(string):
-        return PCDATA_RE.sub('&amp;', string).replace('<', '&lt;').replace('>', '&gt;').replace('\'', '&apos;').\
-            replace('"', '&quot;')
+    def _tagstr(tag, string, opt=False):
+        if opt and string == '':
+            return ''
+        return f'<{tag}>{escape(string, entities=QUOTES)}</{tag}>'

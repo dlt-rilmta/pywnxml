@@ -32,6 +32,11 @@ ENG20-09256536-n  {kutya:2}  (Jelzett tulajdonsága miatt megvetést érdemlő s
 
 ## Changes
 
+2020-07-29:
+- Reformat files to be more pythonic
+- Bump minimal Python version to 3.6
+- Assorted fixes
+
 2015-04-29:
 - wnxmlconsole.py will now run on non-Linux OS's (tested: Windows 7), i.e. no exception if readline module cannot be loaded
 - stats printed by wnxmlconsole.py now includes number of distinct literals (words)

@@ -56,6 +56,9 @@ class WNQuery:
         self.m_vidx = defaultdict(list)
         self.m_aidx = defaultdict(list)
         self.m_bidx = defaultdict(list)
+        self._pos_to_data = {'n': (self.m_ndat, self.m_nidx), 'v': (self.m_vdat, self.m_vidx),
+                             'a': (self.m_adat, self.m_aidx), 'b': (self.m_bdat, self.m_bidx)}
+
         self._invRelTable = {'hypernym': 'hyponym', 'holo_member': 'mero_member', 'holo_part': 'mero_part',
                              'holo_portion': 'mero_portion', 'region_domain': 'region_member',
                              'usage_domain': 'usage_member', 'category_domain': 'category_member',
@@ -85,10 +88,7 @@ class WNQuery:
                     print(key, ': ', val, sep='', file=sys.stdout)
 
         self.LeaCho_D = {}
-        self.LeaCho_noconnect = - 1.0
-
-        self._pos_to_data = {'n': (self.m_ndat, self.m_nidx), 'v': (self.m_vdat, self.m_vidx),
-                             'a': (self.m_adat, self.m_aidx), 'b': (self.m_bdat, self.m_bidx)}
+        self.LeaCho_noconnect = -1.0
 
     def write_stats(self, os):
         """
@@ -174,7 +174,7 @@ class WNQuery:
         """
         Get the appropriate synset-id-to-synset-map for the given POS.
         :param pos: part-of-speech: n|v|a|b
-        # @exception WNQueryException if invalid POS
+        # @exception InvalidPOSException if invalid POS
         """
         data = self._pos_to_data.get(pos)
         if data is not None:
@@ -186,7 +186,7 @@ class WNQuery:
         """
         Get the appropriate literal-to-synset-ids-multimap for the given POS.
         :param pos: part-of-speech: n|v|a|b
-        # @exception WNQueryException if invalid POS
+        # @exception InvalidPOSException if invalid POS
         """
         data = self._pos_to_data.get(pos)
         if data is not None:
@@ -218,10 +218,6 @@ class WNQuery:
             if syns is not None:
                 res.append(syns)
         return res
-
-    def look_up_literal_s(self, literal, pos):
-        """Get ids of synsets containing given literal in given POS."""
-        return self.idx(pos).get(literal)
 
     def look_up_sense(self, literal, sensenum, pos):
         """
@@ -276,7 +272,7 @@ class WNQuery:
                 res.append(('#TOP#', dist))
         return res
 
-    def trace_relation(self, wnid, pos, rel, lev=None, unique=False):
+    def trace_relation(self, wnid, pos, rel, lev=None, unique=False, pretty=False):
         """
         Do a recursive (preorder) trace from the given synset along the given relation.
         :param wnid: id of synset to start from
@@ -284,60 +280,64 @@ class WNQuery:
         :param rel: name of relation to trace
         :param lev: starting number of levels
         :param unique: the returning elements should be uniqe (i.e. set) or not (i.e. list) w/ optional levels
-        :return: holds the ids of synsets found on the trace. It always holds at least the starting synset
-         (so if starting synset has no relations of the searched type, result will only hold that synset).
+        :param pretty: Pretty-print the output or not
+        :return: holds the ids of synsets found on the trace
+            - Can be used to pretty print synsets
+            - It holds at least the starting synset (when not pretty-printing, so if starting synset has no relations
+             of the searched type, result will only hold that synset)
+            - Can be used to output level information, wnid only, and their unique variants
         """
 
         # init according to the parameters
         if unique:
             res = set()
             res_append = res.add
+            res_extend = res.union
         else:
             res = []
             res_append = res.append
+            res_extend = res.extend
         # get children
         ids = self.look_up_relation(wnid, pos, rel)
         # save current synset
         if lev is None:
-            to_append = wnid
+            res_append(wnid)
         else:
-            to_append = (wnid, lev)
-        res_append(to_append)
+            if pretty:
+                if len(ids) > 0:
+                    # prettify the current synset
+                    indent = '  ' * lev
+                    current = {i.literal: i.sense for i in self.dat(pos)[wnid].synonyms}
+                    res.append(f'{indent}{self.dat(pos)[wnid].wnid}  {current}  ({self.dat(pos)[wnid].definition})')
+            else:
+                res_append((wnid, lev))
+            lev += 1
         # recurse on children
-        lev += 1
         for synset_id in ids:  # for all searched relations of synset
-            res += self.trace_relation(synset_id, pos, rel, lev, unique)  # recurse on target
+            res_extend(self.trace_relation(synset_id, pos, rel, lev, unique, pretty)) # recurse on target
         return res
 
-    def trace_relation_os_r(self, wnid, pos, rel, lev=0):
-        """Like trace_relation, but output goes to output stream with pretty formatting."""
-
-        buf = []
-        ids = self.look_up_relation(wnid, pos, rel)
-        if len(ids) > 0:
-            # print current synset
-            indent = '  ' * lev
-            current = {i.literal: i.sense for i in self.dat(pos)[wnid].synonyms}
-            buf.append(f'{indent}{self.dat(pos)[wnid].wnid}  {current}  ({self.dat(pos)[wnid].definition})')
-            # Continue lookup recursively
-            lev += 1
-            for synset_id in ids:
-                buf += self.trace_relation_os_r(synset_id, pos, rel, lev)  # recurse on target
-        return buf
-
     def trace_realation_os(self, wnid, pos, relation, out):
-        oss = self.trace_relation_os_r(wnid, pos, relation)
-        if not oss:
+        oss = self.trace_relation(wnid, pos, relation, lev=0, pretty=True)
+        if len(oss) == 0:
             print('Synset not found', end='\n\n', file=out)
         else:
             print('\n'.join(oss), end='\n\n', file=out)
 
     def write_synset_id_to_os(self, wnid, pos, out):
         syns = self.look_up_id(wnid, pos)
-        if syns:
+        if syns is not None:
             syns.write_str(out)
 
     def look_up_literal_for_pos_os(self, lit, out, pos_list=('n', 'v', 'a', 'b')):
+        """
+        For n, v, a, b elements we run the look_up_literal function,
+        then we flatten the resulting list of returned lists
+        :param lit: literal to look up in all specified POS
+        :param out: Output stream to write the result
+        :param pos_list: The tuple of the POS-tags to use default: all
+        :return: Outputs the result to the stream
+        """
         res = [item for i in pos_list for item in self.look_up_literal(lit, i)]
         if len(res) == 0:
             print('Literal not found', end='\n\n', file=out)
@@ -405,7 +405,7 @@ class WNQuery:
 
         # check if synset contains literal
         syns = self.look_up_id(wnid, pos)
-        if syns:
+        if syns is not None:
             for i in syns.synonyms:
                 if i.literal == literal:
                     return True

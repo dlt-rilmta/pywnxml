@@ -23,15 +23,15 @@ arg_param_len = {'.h': lambda t: len(t) != 1,
                  '.cl': lambda t: len(t) != 5,
                  '.s': lambda t: len(t) != 2,
                  '.sc': lambda t: len(t) != 4,
-                 '.cli': lambda t: not (len(t) == 4 or len(t) == 5 and t[4] == 'hyponyms'),
-                 '.slc': lambda t: not (len(t) == 5 or len(t) == 6 and t[5] == 'top'),
+                 '.cli': lambda t: not (len(t) == 4 or (len(t) == 5 and t[4] == 'hyponyms')),
+                 '.slc': lambda t: not (len(t) == 5 or (len(t) == 6 and t[5] == 'top')),
                  '.md': lambda t: len(t) != 4,
                  '.sg': lambda t: len(t) != 4
                  }
 
 
 def process_query(wn, sf, query, out):
-    # START ARGPARSE
+    # BEGIN ARGPARSE
     t = query.split(' ')
 
     if t[0] not in arg_param_len:
@@ -76,7 +76,7 @@ def process_query(wn, sf, query, out):
                        ' is compatible with semantic feature')
         print('\n'.join(buf), end='\n\n', file=out)
 
-    # STOP ARGPARSE
+    # END ARGPARSE
 
     elif t[0] == '.q':
         sys.exit(0)
@@ -92,12 +92,10 @@ def process_query(wn, sf, query, out):
 
     elif t[0] == '.l':   # .l
         if len(t) == 2:  # .l <literal>
-            # For n, v, a, b elements we run the look_up_literal function,
-            # then we flatten the resulting list of returned lists
-            wn.look_up_literal_for_pos_os(t[1], out)
+            wn.look_up_literal_for_pos_os(t[1], out)  # For all POS
 
         elif len(t) == 3:  # .l <literal> <pos>
-            wn.look_up_literal_for_pos_os(t[1], out, pos_list=(t[2],))
+            wn.look_up_literal_for_pos_os(t[1], out, pos_list=(t[2],))  # For t[2] POS only
 
         elif len(t) == 4:  # .l <literal> <sensenum> <pos>
             syns = wn.look_up_sense(t[1], int(t[2]), t[3])
@@ -187,14 +185,15 @@ def process_query(wn, sf, query, out):
                 print('Compatibility not found', file=out)
 
     elif t[0] == '.cli':  # .cli <literal> <pos> <id> [hyponyms]
-        if wn.is_literal_compatible_with_synset(t[1], t[2], t[3], t[4] == 'hyponyms'):
+        if wn.is_literal_compatible_with_synset(t[1], t[2], t[3], len(t) > 4 and t[4] == 'hyponyms'):
             print('Compatible', file=out)
         else:
             print('Not compatible', file=out)
 
     elif t[0] == '.slc':  # .slc <literal1> <literal2> <pos> <relation>
         print('Results:', file=out)
-        for key, (wnid1, wnid2) in sorted(wn.similarity_leacock_chodorow(t[1], t[2], t[3], t[4], t[5] == 'top').items(),
+        for key, (wnid1, wnid2) in sorted(wn.similarity_leacock_chodorow(t[1], t[2], t[3], t[4],
+                                                                         len(t) > 5 and t[5] == 'top').items(),
                                           reverse=True):  # tSims
             print('  ', key, '\t', wnid1, '  ', wnid2, sep='', file=out)
 
