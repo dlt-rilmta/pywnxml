@@ -144,7 +144,7 @@ class Synset:
         Write string representation '<id> {<literal:sid>,...} (<definiton>)' to stream
         """
         print(self.wnid, '  {', ', '.join(f'{i.literal}:{i.sense}' for i in self.synonyms),
-              '}  (', self.definition, ')', sep='', file=out)
+              '}  (', self.definition, ') [', ','.join(f'"{i}"' for i in self.usages), ']', sep='', file=out)
 
     @staticmethod
     def _tagstr(tag, string, opt=False):
